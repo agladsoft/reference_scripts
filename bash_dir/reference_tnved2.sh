@@ -1,6 +1,6 @@
 #!/bin/bash
 
-xls_path="${XL_IDP_PATH_REFERENCE}/reference_tnved/"
+xls_path="${XL_IDP_PATH_REFERENCE}/reference_tnved2/"
 #xls_path="/home/timur/Anton_project/import_xls-master/reference_import_tracking/"
 
 

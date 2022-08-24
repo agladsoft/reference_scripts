@@ -7,4 +7,4 @@ ${XL_IDP_PATH_REFERENCE_SCRIPTS}/bash_dir/reference_statistics.sh
 ${XL_IDP_PATH_REFERENCE_SCRIPTS}/bash_dir/reference_ship.sh
 ${XL_IDP_PATH_REFERENCE_SCRIPTS}/bash_dir/reference_is_empty.sh
 ${XL_IDP_PATH_REFERENCE_SCRIPTS}/bash_dir/reference_inn.sh
-${XL_IDP_PATH_REFERENCE_SCRIPTS}/bash_dir/reference_tnved.sh
+${XL_IDP_PATH_REFERENCE_SCRIPTS}/bash_dir/reference_tnved2.sh
