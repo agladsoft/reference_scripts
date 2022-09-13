@@ -1,3 +1,4 @@
+import contextlib
 import csv
 import datetime
 import json
@@ -32,33 +33,22 @@ def merge_two_dicts(x, y):
 
 
 def parse_column(parsed_data, enum, column0, column1, enum_for_value):
-    try:
-        # parsed_ship_name_and_date = re.findall(r'\b\S+\b', columns[column1][enum])
-        # ship_name = [word for word in parsed_ship_name_and_date if re.findall('[A-Z a-z]', word)]
-        # date_full = parsed_ship_name_and_date[-1].rsplit("-")
-        parsed_ship_name_and_date = columns[column1][enum].split()
-        ship_name = list(parsed_ship_name_and_date[1:-1])
-        ship_name = "".join(ship_name).split() if '-' in ship_name else ship_name
-        date_full = parsed_ship_name_and_date[-1].replace('(', '').replace(')', '').rsplit("-")
-        context['date_arrive'] = date_full[0]
-        context['date_leave'] = date_full[1]
-        context['ship_name'] = context['ship_name'] if not columns[column1][enum] else \
-            " ".join(ship_name)
-    except:
-        pass
-    context['direction'] = context['direction'] if not columns[column1][enum + 1] else \
-        "import" if columns[column1][enum + 1] == 'выгрузка' else "export"
-    context['is_empty'] = (
-        context['is_empty']
-        if not columns[column1][enum + 2]
-        else columns[column1][enum + 2] != 'груженые'
-    )
+    with contextlib.suppress(Exception):
+        date_full = re.findall('(?<=\().*?(?=\))', columns[column1][enum])
+        ship_name = columns[column1][enum].replace(f"({date_full[0]})", "").strip()
+        ship_name = ship_name.split()[1:]
+        context['ship_name'] = " ".join(ship_name) if ship_name else columns[column1][enum]
+        date = date_full[0].split("-")
+        context['date_arrive'] = date[0].strip()
+        context['date_leave'] = date[1].strip()
+    context['direction'] = ("import" if columns[column1][enum + 1] == 'выгрузка' else "export") if columns[column1][enum + 1] else context['direction']
+    context['is_empty'] = columns[column1][enum + 2] != 'груженые' if columns[column1][enum + 2] else context['is_empty']
     type = {'container_size': int("".join(re.findall("\d", columns[column1][enum + 3]))[:2])}
     count = {'count': int(float(columns[column1][enum + enum_for_value]))}
     line = {'line': columns[column0][enum + enum_for_value].rsplit('/', 1)[0]}
     x = {**line, **type, **count}
     record = merge_two_dicts(context, x)
-    logging.info(u'data is {}'.format(record))
+    logging.info(f'data is {record}')
     parsed_data.append(record)
 
 
