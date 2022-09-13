@@ -32,7 +32,7 @@ def add_values_in_dict(provider, inn=None, value=None):
 
 def get_inn_from_str(value):
     inn = re.findall(r"\d+", value)
-    cache_inn = GetINNApi("../cache_inn/data.json")
+    cache_inn = GetINNApi(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/cache_inn/data_inn.json")
     list_inn = []
     for item_inn in inn:
         with contextlib.suppress(Exception):
@@ -41,7 +41,7 @@ def get_inn_from_str(value):
     if list_inn:
         add_values_in_dict(cache_inn, inn=list_inn[0])
     else:
-        cache_name_inn = GetINNApi("../cache_inn/data_name_inn.json")
+        cache_name_inn = GetINNApi(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/cache_inn/data_name_inn.json")
         api_inn, api_name_inn = add_values_in_dict(cache_name_inn, value=value)
         add_values_in_dict(cache_inn, inn=api_inn)
 
