@@ -8,13 +8,13 @@ def calc_company_check_digit(number):
     return str(sum(w * int(n) for w, n in zip(weights, number)) % 11 % 10)
 
 
-# def calc_personal_check_digits(number):
-#     """Calculate the check digits for the 12-digit personal ???."""
-#     weights = (7, 2, 4, 10, 3, 5, 9, 4, 6, 8)
-#     d1 = str(sum(w * int(n) for w, n in zip(weights, number)) % 11 % 10)
-#     weights = (3, 7, 2, 4, 10, 3, 5, 9, 4, 6, 8)
-#     d2 = str(sum(w * int(n) for w, n in zip(weights, number[:10] + d1)) % 11 % 10)
-#     return d1 + d2
+def calc_personal_check_digits(number):
+    """Calculate the check digits for the 12-digit personal ???."""
+    weights = (7, 2, 4, 10, 3, 5, 9, 4, 6, 8)
+    d1 = str(sum(w * int(n) for w, n in zip(weights, number)) % 11 % 10)
+    weights = (3, 7, 2, 4, 10, 3, 5, 9, 4, 6, 8)
+    d2 = str(sum(w * int(n) for w, n in zip(weights, number[:10] + d1)) % 11 % 10)
+    return d1 + d2
 
 
 def validate(number):
@@ -26,10 +26,10 @@ def validate(number):
     if len(number) == 10:
         if calc_company_check_digit(number) != number[-1]:
             raise InvalidChecksum()
-    # elif len(number) == 12:
-    #     # persons
-    #     if calc_personal_check_digits(number) != number[-2:]:
-    #         raise InvalidChecksum()
+    elif len(number) == 12:
+        # persons
+        if calc_personal_check_digits(number) != number[-2:]:
+            raise InvalidChecksum()
     else:
         raise InvalidLength()
     return number

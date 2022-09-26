@@ -15,19 +15,22 @@ class GetINNApi:
         self.cache_file_name = cache_file_name
         self.cache = self.load_cache()
 
-    def get_inn_by_api(self, value, var_api_name=None):
+    def get_inn_by_api(self, value, id, var_api_name=None):
         try:
             session = HTMLSession()
             api_inn = session.get(f'https://www.rusprofile.ru/search?query={value}')
             html_code = api_inn.html.html
             html = BeautifulSoup(html_code, 'html.parser')
-            page_inn = html.find('span', attrs={'id': 'clip_inn'})
+            page_inn = html.find('span', attrs={'id': id})
             page_name = html.find('h1', attrs={'itemprop': 'name'})
-            page_many_inn = html.find('span', attrs={'class': 'finded-text'})
-            page_many_company = html.find("div", attrs={"class": "company-item"})
-            if not page_inn and not page_name and page_many_inn.text == value:
-                var_api_name = page_many_company.find("span", {"class", "finded-text"}).parent.parent.parent.parent.find("a").text.strip()
-            elif page_name:
+            page_many_inn = html.findAll('span', attrs={'class': 'finded-text'})
+            page_many_company = html.findAll("div", attrs={"class": "company-item"})
+            for inn, inn_name in zip(page_many_inn, page_many_company):
+                if not page_inn and not page_name and inn.text == value:
+                    var_api_name = inn_name.find("span", {"class", "finded-text"}).parent.parent.parent.parent.find("a").text.strip()
+                    var_api_name = re.sub(" +", " ", var_api_name)
+                    break
+            if page_name:
                 var_api_name = page_name.text.strip()
             return value if value != 'empty' else None, var_api_name
         except Exception:
@@ -79,7 +82,10 @@ class GetINNApi:
         for key in [inn]:
             api_inn, api_name = None, None
             if key != 'empty':
-                api_inn, api_name = self.get_inn_by_api(key)
+                if len(key) == 10:
+                    api_inn, api_name = self.get_inn_by_api(key, 'clip_inn')
+                elif len(key) == 12:
+                    api_inn, api_name = self.get_inn_by_api(key, 'req_inn')
             if api_inn is not None and api_name is not None:
                 print(self.cache_add_and_save(api_inn, api_name))
                 break
@@ -101,3 +107,9 @@ class GetINNApi:
         with open(self.cache_file_name, 'w') as f:
             json.dump(self.cache, f, indent=4, ensure_ascii=False)
         return "Данные записываются в кэш", api_inn
+
+
+if __name__ == "__main__":
+    get_inn_api = GetINNApi("cache_inn/data_inn.json")
+    # print(get_inn_api.get_inn("781310635186"))
+    print(get_inn_api.get_inn("1658008723"))
