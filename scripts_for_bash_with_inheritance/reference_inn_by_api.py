@@ -8,7 +8,7 @@ import pandas as pd
 from cache_inn import GetINNApi
 import validate_inn
 from deep_translator import GoogleTranslator
-from fuzzywuzzy import process
+from fuzzywuzzy import fuzz
 
 input_file_path = os.path.abspath(sys.argv[1])
 output_folder = sys.argv[2]
@@ -32,13 +32,15 @@ def add_values_in_dict(provider, inn=None, value=None, company_name_rus=None):
         api_inn, api_name_inn = provider.get_inn_from_value(translated)
         return api_inn, api_name_inn, translated
     inn, api_name_inn = provider.get_inn(inn)
-    list_fuzzy_wuzzy = process.extract(api_name_inn, translated.split(), limit=2)
-    fuzzy_wuzzy = [elem[1] for elem in list_fuzzy_wuzzy]
+    translated = re.sub(" +", " ", translated)
+    api_name_inn = re.sub(" +", " ", api_name_inn)
+    translated = translated.translate({ord(c): " " for c in ",'!@#$%^&*()[]{};<>?\|`~-=_+"})
+    api_name_inn = api_name_inn.translate({ord(c): "" for c in ",'!@#$%^&*()[]{};<>?\|`~-=_+"})
     dict_data['company_name_rus'] = translated
     dict_data["company_inn"] = inn
     dict_data["company_name_unified"] = api_name_inn
     dict_data['is_inn_found_auto'] = True
-    dict_data['confidence_rate'] = sum(fuzzy_wuzzy) / len(fuzzy_wuzzy)
+    dict_data['confidence_rate'] = fuzz.partial_ratio(api_name_inn.upper(), translated.upper())
 
 
 def get_inn_from_str(value):

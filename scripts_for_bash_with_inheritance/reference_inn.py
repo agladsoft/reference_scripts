@@ -1,11 +1,12 @@
 import contextlib
 import json
 import os
+import re
 import sys
 import numpy as np
 import pandas as pd
 from deep_translator import GoogleTranslator
-from fuzzywuzzy import process
+from fuzzywuzzy import fuzz
 
 input_file_path = os.path.abspath(sys.argv[1])
 output_folder = sys.argv[2]
@@ -26,7 +27,6 @@ def trim_all_columns(df):
 
 
 df = pd.read_csv(input_file_path, dtype=str)
-df = df.drop_duplicates(subset='company_name', keep="first")
 df['company_name_rus'] = None
 df['is_inn_found_auto'] = False
 df['confidence_rate'] = None
@@ -44,9 +44,11 @@ for dict_data in parsed_data:
                 company_name_rus = GoogleTranslator(source='en', target='ru').translate(value)
                 dict_data['company_name_rus'] = company_name_rus
             elif key == 'confidence_rate':
-                list_fuzzy_wuzzy = process.extract(company_name_unified, company_name_rus.split(), limit=2)
-                fuzzy_wuzzy = [elem[1] for elem in list_fuzzy_wuzzy]
-                dict_data['confidence_rate'] = sum(fuzzy_wuzzy) / len(fuzzy_wuzzy)
+                company_name_unified = re.sub(" +", " ", company_name_unified)
+                company_name_rus = re.sub(" +", " ", company_name_rus)
+                company_name_unified = company_name_unified.translate({ord(c): " " for c in ",'!@#$%^&*()[]{};<>?\|`~-=_+"})
+                company_name_rus = company_name_rus.translate({ord(c): "" for c in ",'!@#$%^&*()[]{};<>?\|`~-=_+"})
+                dict_data['confidence_rate'] = fuzz.partial_ratio(company_name_unified.upper(), company_name_rus.upper())
 
 basename = os.path.basename(input_file_path)
 output_file_path = os.path.join(output_folder, f'{basename}.json')
