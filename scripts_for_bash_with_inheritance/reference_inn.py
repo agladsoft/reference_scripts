@@ -12,11 +12,18 @@ from fuzzywuzzy import fuzz
 
 worker_count = 16
 
-if not os.path.exists("logging"):
+if not os.path.exists(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging"):
     os.mkdir("logging")
 
-logging.basicConfig(filename=f"logging/{os.path.basename(__file__)}.log", level=logging.DEBUG)
+logging.basicConfig(filename=f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging/{os.path.basename(__file__)}.log", level=logging.DEBUG)
 log = logging.getLogger()
+
+console_out = logging.StreamHandler()
+logger_stream = logging.getLogger("stream")
+if logger_stream.hasHandlers():
+    logger_stream.handlers.clear()
+logger_stream.addHandler(console_out)
+logger_stream.setLevel(logging.INFO)
 
 input_file_path = os.path.abspath(sys.argv[1])
 output_folder = sys.argv[2]
@@ -62,6 +69,7 @@ def parse_data(i, dict_data):
                 dict_data['confidence_rate'] = fuzz.partial_ratio(company_name_unified.upper(), company_name_rus.upper())
 
     logging.info(f'{i} data is {dict_data}')
+    logger_stream.info(f'{i} data is {dict_data}')
     basename = os.path.basename(input_file_path)
     output_file_path = os.path.join(output_folder, f'{basename}_{i}.json')
     with open(f"{output_file_path}", 'w', encoding='utf-8') as f:
