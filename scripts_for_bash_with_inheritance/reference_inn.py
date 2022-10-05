@@ -13,7 +13,7 @@ from fuzzywuzzy import fuzz
 worker_count = 16
 
 if not os.path.exists(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging"):
-    os.mkdir("logging")
+    os.mkdir(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging")
 
 logging.basicConfig(filename=f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging/{os.path.basename(__file__)}.log", level=logging.DEBUG)
 log = logging.getLogger()
