@@ -1,5 +1,7 @@
 import contextlib
 import json
+from multiprocessing import Pool
+import logging
 import os
 import re
 import sys
@@ -7,6 +9,14 @@ import numpy as np
 import pandas as pd
 from deep_translator import GoogleTranslator
 from fuzzywuzzy import fuzz
+
+worker_count = 16
+
+if not os.path.exists("logging"):
+    os.mkdir("logging")
+
+logging.basicConfig(filename=f"logging/{os.path.basename(__file__)}.log", level=logging.DEBUG)
+log = logging.getLogger()
 
 input_file_path = os.path.abspath(sys.argv[1])
 output_folder = sys.argv[2]
@@ -35,7 +45,8 @@ df = df.rename(columns=headers_eng)
 df = trim_all_columns(df)
 parsed_data = df.to_dict('records')
 
-for dict_data in parsed_data:
+
+def parse_data(i, dict_data):
     for key, value in dict_data.items():
         with contextlib.suppress(Exception):
             if key == 'company_name_unified':
@@ -50,7 +61,17 @@ for dict_data in parsed_data:
                 company_name_rus = company_name_rus.translate({ord(c): "" for c in ",'!@#$%^&*()[]{};<>?\|`~-=_+"})
                 dict_data['confidence_rate'] = fuzz.partial_ratio(company_name_unified.upper(), company_name_rus.upper())
 
-basename = os.path.basename(input_file_path)
-output_file_path = os.path.join(output_folder, f'{basename}.json')
-with open(f"{output_file_path}", 'w', encoding='utf-8') as f:
-    json.dump(parsed_data, f, ensure_ascii=False, indent=4)
+    logging.info(f'{i} data is {dict_data}')
+    basename = os.path.basename(input_file_path)
+    output_file_path = os.path.join(output_folder, f'{basename}_{i}.json')
+    with open(f"{output_file_path}", 'w', encoding='utf-8') as f:
+        json.dump(dict_data, f, ensure_ascii=False, indent=4)
+
+
+procs = []
+with Pool(processes=worker_count) as pool:
+    for i, dict_data in enumerate(parsed_data, 2):
+        proc = pool.apply_async(parse_data, (i, dict_data))
+        procs.append(proc)
+
+    results = [proc.get() for proc in procs]
