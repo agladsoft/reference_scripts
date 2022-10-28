@@ -43,7 +43,7 @@ class OoclCsv(object):
 
         parsed_data = list()
         for line in lines:
-            new_line = {k: v for k, v in line.items() if k in fileds_to_get}
+            new_line = {k: v.strip() for k, v in line.items() if k in fileds_to_get}
             parsed_data.append(new_line)
 
         return parsed_data
