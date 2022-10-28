@@ -31,7 +31,7 @@ for dict_data in parsed_data:
     for key, value in dict_data.items():
         with contextlib.suppress(Exception):
             if key in ['section_tnved', 'group_tnved']:
-                dict_data[key] = f"{int(value):02d}"
+                dict_data[key] = f"{int(value)}"
 
 basename = os.path.basename(input_file_path)
 output_file_path = os.path.join(output_folder, f'{basename}.json')
