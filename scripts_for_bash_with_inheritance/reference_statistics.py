@@ -45,7 +45,7 @@ def parse_column(parsed_data, enum, column0, column1, enum_for_value):
     context['is_empty'] = columns[column1][enum + 2] != 'груженые' if columns[column1][enum + 2] else context['is_empty']
     type = {'container_size': int("".join(re.findall("\d", columns[column1][enum + 3]))[:2])}
     count = {'count': int(float(columns[column1][enum + enum_for_value]))}
-    line = {'line': columns[column0][enum + enum_for_value].rsplit('/', 1)[0]}
+    line = {'line': columns[column0][enum + enum_for_value].rsplit('/', 1)[0].strip()}
     x = {**line, **type, **count}
     record = merge_two_dicts(context, x)
     logging.info(f'data is {record}')
