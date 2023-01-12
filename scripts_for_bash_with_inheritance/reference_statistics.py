@@ -71,7 +71,7 @@ def process(input_file_path):
     context['month'] = month_digit
     context['year'] = int(month[1])
     for (enum, ship_name), ship_name_number in zip(enumerate(columns[zip_list[0]]), columns[zip_list[1]]):
-        number_ship = re.findall("\d[.][\W][A-Z]+", ship_name_number)
+        number_ship = re.findall("\d{1,3}[.][\W][A-Z]+", ship_name_number)
         try:
             if ship_name == 'Название судна' or number_ship:
                 for column in zip_list:
@@ -81,6 +81,7 @@ def process(input_file_path):
                         '\d', item)]
                     for enum_for_value in list_index:
                         parse_column(parsed_data, enum, zip_list[0], column, enum_for_value)
+                columns[zip_list[0]] = columns[zip_list[0]][end+2:]
         except IndexError:
             continue
 
