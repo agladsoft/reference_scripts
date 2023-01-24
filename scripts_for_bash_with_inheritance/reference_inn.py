@@ -64,8 +64,8 @@ def parse_data(i, dict_data):
             elif key == 'confidence_rate':
                 company_name_unified = re.sub(" +", " ", company_name_unified)
                 company_name_rus = re.sub(" +", " ", company_name_rus)
-                company_name_unified = company_name_unified.translate({ord(c): " " for c in ",'!@#$%^&*()[]{};<>?\|`~-=_+"})
-                company_name_rus = company_name_rus.translate({ord(c): "" for c in ",'!@#$%^&*()[]{};<>?\|`~-=_+"})
+                company_name_unified = company_name_unified.translate({ord(c): " " for c in ",'!@#$%^&*()[]{};<>?\|`~=_+"})
+                company_name_rus = company_name_rus.translate({ord(c): "" for c in ",'!@#$%^&*()[]{};<>?\|`~=_+"})
                 dict_data['confidence_rate'] = fuzz.partial_ratio(company_name_unified.upper(), company_name_rus.upper())
 
     logging.info(f'{i} data is {dict_data}')
