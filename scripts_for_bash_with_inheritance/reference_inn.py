@@ -10,7 +10,7 @@ import pandas as pd
 from deep_translator import GoogleTranslator
 from fuzzywuzzy import fuzz
 
-worker_count = 16
+worker_count = 8
 
 if not os.path.exists(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging"):
     os.mkdir(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging")
