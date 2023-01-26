@@ -48,6 +48,7 @@ df['company_name_rus'] = None
 df['is_inn_found_auto'] = False
 df['confidence_rate'] = None
 df = df.replace({np.nan: None})
+df = df.dropna(axis=0, how='all')
 df = df.rename(columns=headers_eng)
 df = trim_all_columns(df)
 parsed_data = df.to_dict('records')
