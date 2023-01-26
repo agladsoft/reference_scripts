@@ -10,7 +10,7 @@ import pandas as pd
 from deep_translator import GoogleTranslator
 from fuzzywuzzy import fuzz
 
-worker_count = 8
+worker_count = 4
 
 if not os.path.exists(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging"):
     os.mkdir(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging")
@@ -48,6 +48,7 @@ df['company_name_rus'] = None
 df['is_inn_found_auto'] = False
 df['confidence_rate'] = None
 df = df.replace({np.nan: None})
+df = df.dropna(axis=0, how='all')
 df = df.rename(columns=headers_eng)
 df = trim_all_columns(df)
 parsed_data = df.to_dict('records')
