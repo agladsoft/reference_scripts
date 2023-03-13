@@ -22,10 +22,8 @@ def merge_two_dicts(x, y):
 class ReferenceImportTracking(object):
 
     @staticmethod
-    def get_field_from_db(seaport, country):
-        client = get_client(host='clickhouse', database='marketing_db', username='admin', password='6QVnYsC4iSzz')
+    def get_field_from_db(seaport, country, client):
         query = client.query(f"SELECT * FROM reference_region WHERE seaport='{seaport}' AND country='{country}'").result_rows
-        client.close()
         return query
 
     def process(self, file_path):
@@ -36,13 +34,16 @@ class ReferenceImportTracking(object):
         logging.info(f'First 3 items are: {lines[:3]}')
         fileds_to_get = ['import_id', 'shipper_seaport', 'shipper_country']
         data = []
+        client = get_client(host='clickhouse', database='marketing_db', username='admin', password='6QVnYsC4iSzz')
         for index, line in enumerate(lines):
             new_line = {k: v.strip() for k, v in line.items() if k in fileds_to_get}
-            if self.get_field_from_db(new_line["shipper_seaport"], new_line["shipper_country"]):
+            if self.get_field_from_db(new_line["shipper_seaport"], new_line["shipper_country"], client):
                 data.append(new_line)
             else:
+                client.close()
                 print(f"1_in_row_{index + 1}", file=sys.stderr)
                 sys.exit(1)
+        client.close()
         return data
 
 
