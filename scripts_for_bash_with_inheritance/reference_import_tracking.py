@@ -1,14 +1,15 @@
-import csv
 import os
-import logging
+import csv
 import sys
 import json
+import logging
 import datetime
+from clickhouse_connect import get_client
 
 if not os.path.exists("logging"):
     os.mkdir("logging")
 
-logging.basicConfig(filename="logging/{}.log".format(os.path.basename(__file__)), level=logging.DEBUG)
+logging.basicConfig(filename=f"logging/{os.path.basename(__file__)}.log", level=logging.DEBUG)
 log = logging.getLogger()
 
 
@@ -18,45 +19,40 @@ def merge_two_dicts(x, y):
     return z
 
 
-def isDigit(x):
-    try:
-        float(x)
-        return True
-    except ValueError:
-        return False
+class ReferenceImportTracking(object):
 
+    @staticmethod
+    def get_field_from_db(seaport, country):
+        client = get_client(host='clickhouse', database='marketing_db', username='admin', password='6QVnYsC4iSzz')
+        query = client.query(f"SELECT * FROM reference_region WHERE seaport='{seaport}' AND country='{country}'").result_rows
+        client.close()
+        return query
 
-class OoclCsv(object):
-
-    def __init__(self):
-        pass
-
-    def process(self, input_file_path):
-        logging.info(u'file is {} {}'.format(os.path.basename(input_file_path), datetime.datetime.now()))
-        with open(input_file_path, newline='') as csvfile:
+    def process(self, file_path):
+        logging.info(f'file is {os.path.basename(file_path)} {datetime.datetime.now()}')
+        with open(file_path, newline='') as csvfile:
             lines = list(csv.DictReader(csvfile))
-
-        logging.info(u'lines type is {} and contain {} items'.format(type(lines), len(lines)))
-        logging.info(u'First 3 items are: {}'.format(lines[:3]))
-
+        logging.info(f'lines type is {type(lines)} and contain {len(lines)} items')
+        logging.info(f'First 3 items are: {lines[:3]}')
         fileds_to_get = ['import_id', 'shipper_seaport', 'shipper_country']
-
-        parsed_data = list()
-        for line in lines:
+        data = []
+        for index, line in enumerate(lines):
             new_line = {k: v.strip() for k, v in line.items() if k in fileds_to_get}
-            parsed_data.append(new_line)
-
-        return parsed_data
+            if self.get_field_from_db(new_line["shipper_seaport"], new_line["shipper_country"]):
+                data.append(new_line)
+            else:
+                print(f"1_in_row_{index + 1}", file=sys.stderr)
+                sys.exit(1)
+        return data
 
 
 input_file_path = os.path.abspath(sys.argv[1])
-output_folder = sys.argv[2]
 basename = os.path.basename(input_file_path)
-output_file_path = os.path.join(output_folder, basename+'.json')
-print("output_file_path is {}".format(output_file_path))
+output_file_path = os.path.join(sys.argv[2], f'{basename}.json')
+print(f"output_file_path is {output_file_path}")
 
 
-parsed_data = OoclCsv().process(input_file_path)
+parsed_data = ReferenceImportTracking().process(input_file_path)
 
 with open(output_file_path, 'w', encoding='utf-8') as f:
     json.dump(parsed_data, f, ensure_ascii=False, indent=4)
