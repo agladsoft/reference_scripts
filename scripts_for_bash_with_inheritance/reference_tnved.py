@@ -22,8 +22,8 @@ df = pd.read_csv(input_file_path, dtype=str)
 df.columns = headers_eng
 # df = df.loc[:, ~df.columns.isin(['unnamed'])]
 df[df.columns] = df.apply(lambda x: x.str.strip())
-df["start_date_group"] = pd.to_datetime(df["start_date_group"], dayfirst=True).dt.date
-df["expire_date_group"] = pd.to_datetime(df["expire_date_group"], dayfirst=True).dt.date
+df["start_date_group"] = pd.to_datetime(df["start_date_group"]).dt.date
+df["expire_date_group"] = pd.to_datetime(df["expire_date_group"]).dt.date
 df.replace({pd.NaT: None}, inplace=True)
 parsed_data = df.to_dict('records')
 
@@ -31,7 +31,7 @@ for dict_data in parsed_data:
     for key, value in dict_data.items():
         with contextlib.suppress(Exception):
             if key in ['section_tnved', 'group_tnved']:
-                dict_data[key] = f"{int(value)}"
+                dict_data[key] = f"{int(value):02d}"
 
 basename = os.path.basename(input_file_path)
 output_file_path = os.path.join(output_folder, f'{basename}.json')
