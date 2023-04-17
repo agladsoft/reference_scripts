@@ -41,7 +41,7 @@ class ReferenceImportTracking(object):
                 data.append(new_line)
             else:
                 client.close()
-                print(f"7_in_row_{index}", file=sys.stderr)
+                print(f"7_in_row_{index + 1}", file=sys.stderr)
                 sys.exit(7)
         client.close()
         return data
