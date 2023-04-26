@@ -34,7 +34,7 @@ class ReferenceImportTracking(object):
         logging.info(f'First 3 items are: {lines[:3]}')
         fileds_to_get = ['import_id', 'tracking_seaport', 'tracking_country']
         data = []
-        client = get_client(host='clickhouse', database='marketing_db', username='default', password='6QVnYsC4iSzz')
+        client = get_client(host='clickhouse', database='default', username='default', password='6QVnYsC4iSzz')
         for index, line in enumerate(lines):
             new_line = {k: v.strip() for k, v in line.items() if k in fileds_to_get}
             if self.get_field_from_db(new_line["tracking_seaport"], new_line["tracking_country"], client):
