@@ -32,12 +32,12 @@ class ReferenceImportTracking(object):
             lines = list(csv.DictReader(csvfile))
         logging.info(f'lines type is {type(lines)} and contain {len(lines)} items')
         logging.info(f'First 3 items are: {lines[:3]}')
-        fileds_to_get = ['import_id', 'shipper_seaport', 'shipper_country']
+        fileds_to_get = ['import_id', 'tracking_seaport', 'tracking_country']
         data = []
         client = get_client(host='clickhouse', database='marketing_db', username='admin', password='6QVnYsC4iSzz')
         for index, line in enumerate(lines):
             new_line = {k: v.strip() for k, v in line.items() if k in fileds_to_get}
-            if self.get_field_from_db(new_line["shipper_seaport"], new_line["shipper_country"], client):
+            if self.get_field_from_db(new_line["tracking_seaport"], new_line["tracking_country"], client):
                 data.append(new_line)
             else:
                 client.close()
