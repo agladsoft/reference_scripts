@@ -6,31 +6,50 @@ from datetime import datetime
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
+list_join_columns: list = ["telephone_number", "email"]
 
 headers_eng: dict = {
     ("ИНН",): "inn",
     ("Наименование",): "company_name",
     ("КПП",): "kpp",
     ("ОГРН",): "ogrn",
-    ("ФИО руководителя",): "full_name_manager",
-    ("Должность руководителя",): "position_head",
-    ("Номер телефона", "Телефон"): "phone_number",
-    ("Электронная почта", "E-MAIL"): "email",
+    ("ФИО руководителя",): "director_full_name",
+    ("Должность руководителя",): "position",
+    ("Номер телефона", "Телефон"): list_join_columns[0],
+    ("Дополнительный телефон 1",): list_join_columns[0],
+    ("Дополнительный телефон 2",): list_join_columns[0],
+    ("Дополнительный телефон 3",): list_join_columns[0],
+    ("Дополнительный телефон 4",): list_join_columns[0],
+    ("Дополнительный телефон 5",): list_join_columns[0],
+    ("Дополнительный телефон 6",): list_join_columns[0],
+    ("Дополнительный телефон 7",): list_join_columns[0],
+    ("Дополнительный телефон 8",): list_join_columns[0],
+    ("Дополнительный телефон 9",): list_join_columns[0],
+    ("Электронная почта", "E-MAIL"): list_join_columns[1],
+    ("Дополнительная электронная почта 1",): list_join_columns[1],
+    ("Дополнительная электронная почта 2",): list_join_columns[1],
+    ("Дополнительная электронная почта 3",): list_join_columns[1],
+    ("Дополнительная электронная почта 4",): list_join_columns[1],
+    ("Дополнительная электронная почта 5",): list_join_columns[1],
+    ("Дополнительная электронная почта 6",): list_join_columns[1],
+    ("Дополнительная электронная почта 7",): list_join_columns[1],
+    ("Дополнительная электронная почта 8",): list_join_columns[1],
+    ("Дополнительная электронная почта 9",): list_join_columns[1],
     ("Адрес",): "address",
-    ("Регион по адресу",): "region_address",
-    ("Ссылка на сайт",): "url_to_site",
-    ("Карточка в Фокусе",): "card_focus",
-    ("Статус",): "status_upload_date",
-    ("Выручка, тыс. руб",): "revenue_upload_date",
-    ("Чистая прибыль/ убыток, тыс. руб",): "net_profit_loss_upload_date",
-    ("Количество сотрудников",): "number_employees_upload_date",
-    ("Полученные лицензии",): "licenses_received",
-    ("Дата регистрации",): "date_registration",
-    ("Реестр МСП",): "register_smes",
-    ("Основной вид деятельности",): "main_activity",
-    ("Другие виды деятельности",): "other_activities",
+    ("Регион по адресу",): "region",
+    ("Ссылка на сайт",): "website_link",
+    ("Карточка в Фокусе",): "link_to_card_in_focus",
+    ("Статус",): "status_at_upload_date",
+    ("Выручка, тыс. руб",): "revenue_at_upload_date_thousand_rubles",
+    ("Чистая прибыль/ убыток, тыс. руб",): "net_profit_or_loss_at_upload_date_thousand_rubles",
+    ("Количество сотрудников",): "employees_number_at_upload_date",
+    ("Полученные лицензии",): "licenses",
+    ("Дата регистрации",): "registration_date",
+    ("Реестр МСП",): "register_msp",
+    ("Основной вид деятельности",): "activity_main_type",
+    ("Другие виды деятельности",): "activity_other_types",
     ("Регион регистрации",): "registration_region",
-    ("Филиалы",): "branches"
+    ("Филиалы",): "branch_name"
 }
 
 
@@ -86,6 +105,9 @@ class ReferenceCompass(object):
             for key, value in dict_header.items():
                 if cell.column_letter == key:
                     try:
+                        if value[1] in list_join_columns and dict_columns.get(value[1]):
+                            dict_columns[value[1]] = f"{dict_columns.get(value[1])}/{cell.value}"
+                            continue
                         dict_columns[value[1]] = cell.hyperlink.target
                     except AttributeError:
                         dict_columns[value[1]] = cell.value
