@@ -8,14 +8,29 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 
 headers_eng: dict = {
-    "ИНН": "inn",
-    "Наименование": "company_name",
-    "КПП": "kpp",
-    "ОГРН": "ogrn",
-    "ФИО руководителя": "full_name_manager",
-    "Ссылка на сайт": "url_to_site",
-    "Карточка в Фокусе": "card_focus",
-    "Дата регистрации": "date_registration"
+    ("ИНН",): "inn",
+    ("Наименование",): "company_name",
+    ("КПП",): "kpp",
+    ("ОГРН",): "ogrn",
+    ("ФИО руководителя",): "full_name_manager",
+    ("Должность руководителя",): "position_head",
+    ("Номер телефона", "Телефон"): "phone_number",
+    ("Электронная почта", "E-MAIL"): "email",
+    ("Адрес",): "address",
+    ("Регион по адресу",): "region_address",
+    ("Ссылка на сайт",): "url_to_site",
+    ("Карточка в Фокусе",): "card_focus",
+    ("Статус",): "status_upload_date",
+    ("Выручка, тыс. руб",): "revenue_upload_date",
+    ("Чистая прибыль/ убыток, тыс. руб",): "net_profit_loss_upload_date",
+    ("Количество сотрудников",): "number_employees_upload_date",
+    ("Полученные лицензии",): "licenses_received",
+    ("Дата регистрации",): "date_registration",
+    ("Реестр МСП",): "register_smes",
+    ("Основной вид деятельности",): "main_activity",
+    ("Другие виды деятельности",): "other_activities",
+    ("Регион регистрации",): "registration_region",
+    ("Филиалы",): "branches"
 }
 
 
@@ -58,8 +73,9 @@ class ReferenceCompass(object):
         """
         for cell in column:
             for key, value in headers_eng.items():
-                if cell.internal_value == key:
-                    dict_header[cell.column_letter] = cell.internal_value, value
+                for column_rus in key:
+                    if cell.internal_value == column_rus:
+                        dict_header[cell.column_letter] = cell.internal_value, value
 
     @staticmethod
     def get_value_from_cell(column: tuple, dict_header: dict, dict_columns: dict) -> None:
