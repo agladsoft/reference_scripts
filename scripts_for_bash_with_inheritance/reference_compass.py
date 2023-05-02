@@ -79,7 +79,7 @@ class ReferenceCompass(object):
         The main function where we read the Excel file and write the file to json.
         """
         wb: Workbook = load_workbook(self.input_file_path)
-        ws: Worksheet = wb["Контрагенты"]
+        ws: Worksheet = wb[wb.sheetnames[0]]
         parsed_data: list = []
         dict_header: dict = {}
         for i, column in enumerate(ws):
