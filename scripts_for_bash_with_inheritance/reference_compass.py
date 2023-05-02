@@ -65,7 +65,7 @@ class ReferenceCompass(object):
         for dict_data in parsed_data:
             for key, value in dict_data.items():
                 with contextlib.suppress(Exception):
-                    if key in ["date_registration"]:
+                    if key in ["registration_date"]:
                         dict_data[key] = str(value.date())
             self.add_new_columns(dict_data)
 
