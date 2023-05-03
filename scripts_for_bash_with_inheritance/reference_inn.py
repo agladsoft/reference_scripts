@@ -1,6 +1,7 @@
 import contextlib
 import json
 from multiprocessing import Pool
+from datetime import datetime
 import logging
 import os
 import re
@@ -68,6 +69,8 @@ def parse_data(i, dict_data):
                 company_name_unified = company_name_unified.translate({ord(c): " " for c in ",'!@#$%^&*()[]{};<>?\|`~=_+"})
                 company_name_rus = company_name_rus.translate({ord(c): "" for c in ",'!@#$%^&*()[]{};<>?\|`~=_+"})
                 dict_data['confidence_rate'] = fuzz.partial_ratio(company_name_unified.upper(), company_name_rus.upper())
+    dict_data['original_file_name'] = os.path.basename(input_file_path)
+    dict_data['original_file_parsed_on'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
     logging.info(f'{i} data is {dict_data}')
     logger_stream.info(f'{i} data is {dict_data}')
