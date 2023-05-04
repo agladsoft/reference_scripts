@@ -24,7 +24,7 @@ do
   echo "'${file} - ${mime_type}'"
 
 	# Will convert csv to json
-	python3 ${XL_IDP_PATH_REFERENCE_SCRIPTS}/scripts/reference_compass.py "${file}" "${json_path}"
+	python3 ${XL_IDP_PATH_REFERENCE_SCRIPTS}/scripts_for_bash_with_inheritance/reference_compass.py "${file}" "${json_path}"
 
   if [ $? -eq 0 ]
 	then
