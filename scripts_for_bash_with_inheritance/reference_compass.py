@@ -64,7 +64,7 @@ class ReferenceCompass(object):
 
     @staticmethod
     def change_data_in_db(parsed_data: list):
-        client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'), username=os.getenv('USERNAME'),
+        client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'), username=os.getenv('USERNAME_DB'),
                             password=os.getenv('PASSWORD'))
         client.query("SET allow_experimental_lightweight_delete = 1")
         for dict_data in parsed_data:
@@ -148,7 +148,7 @@ class ReferenceCompass(object):
             self.get_value_from_cell(column, dict_header, dict_columns)
             parsed_data.append(dict_columns)
         self.change_type_and_values(parsed_data)
-        # self.change_data_in_db(parsed_data)
+        self.change_data_in_db(parsed_data)
         self.write_to_json(parsed_data)
 
 

@@ -34,7 +34,7 @@ class ReferenceImportTracking(object):
         logging.info(f'First 3 items are: {lines[:3]}')
         fileds_to_get = ['import_id', 'tracking_seaport', 'tracking_country']
         data = []
-        client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'), username=os.getenv('USERNAME'),
+        client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'), username=os.getenv('USERNAME_DB'),
                             password=os.getenv('PASSWORD'))
         for index, line in enumerate(lines):
             new_line = {k: v.strip() for k, v in line.items() if k in fileds_to_get}
