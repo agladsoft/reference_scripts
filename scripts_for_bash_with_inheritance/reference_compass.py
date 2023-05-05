@@ -3,6 +3,7 @@ import sys
 import json
 import contextlib
 from datetime import datetime
+from clickhouse_connect import get_client
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
@@ -58,21 +59,36 @@ class ReferenceCompass(object):
         self.input_file_path: str = input_file_path
         self.output_folder: str = output_folder
 
+    @staticmethod
+    def change_data_in_db(parsed_data: list):
+        client = get_client(host='10.23.4.203', database='default', username='default', password='6QVnYsC4iSzz')
+        client.query("SET allow_experimental_lightweight_delete = 1")
+        for dict_data in parsed_data:
+            for key, value in dict_data.items():
+                if key in ["inn"]:
+                    for row in client.query(f"SELECT * FROM reference_compass WHERE inn='{value}'").result_rows:
+                        if len([x for x in row if x is not None]) < len([x for x in dict_data.values() if x is not None]):
+                            print(row)
+                            # client.query(f"DELETE FROM reference_compass WHERE inn='{value}' "
+                            #              f"and MIN(original_file_index")
+                    break
+
     def change_type_and_values(self, parsed_data: list) -> None:
         """
         Change data types or changing values.
         """
-        for dict_data in parsed_data:
+        for index, dict_data in enumerate(parsed_data, 2):
             for key, value in dict_data.items():
                 with contextlib.suppress(Exception):
                     if key in ["registration_date"]:
                         dict_data[key] = str(value.date())
-            self.add_new_columns(dict_data)
+            self.add_new_columns(dict_data, index)
 
-    def add_new_columns(self, dict_data: dict) -> None:
+    def add_new_columns(self, dict_data: dict, index: int) -> None:
         """
         Add new columns.
         """
+        dict_data["original_file_index"] = index
         dict_data['original_file_name'] = os.path.basename(self.input_file_path)
         dict_data['original_file_parsed_on'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
@@ -128,6 +144,7 @@ class ReferenceCompass(object):
             self.get_value_from_cell(column, dict_header, dict_columns)
             parsed_data.append(dict_columns)
         self.change_type_and_values(parsed_data)
+        # self.change_data_in_db(parsed_data)
         self.write_to_json(parsed_data)
 
 
