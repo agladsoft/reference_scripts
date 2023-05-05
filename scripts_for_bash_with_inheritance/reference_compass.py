@@ -3,9 +3,12 @@ import sys
 import json
 import contextlib
 from datetime import datetime
+from dotenv import load_dotenv
 from clickhouse_connect import get_client
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
+
+load_dotenv()
 
 list_join_columns: list = ["telephone_number", "email"]
 
@@ -61,7 +64,8 @@ class ReferenceCompass(object):
 
     @staticmethod
     def change_data_in_db(parsed_data: list):
-        client = get_client(host='10.23.4.203', database='default', username='default', password='6QVnYsC4iSzz')
+        client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'), username=os.getenv('USERNAME'),
+                            password=os.getenv('PASSWORD'))
         client.query("SET allow_experimental_lightweight_delete = 1")
         for dict_data in parsed_data:
             for key, value in dict_data.items():
