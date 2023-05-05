@@ -4,7 +4,10 @@ import sys
 import json
 import logging
 import datetime
+from dotenv import load_dotenv
 from clickhouse_connect import get_client
+
+load_dotenv()
 
 if not os.path.exists("logging"):
     os.mkdir("logging")
