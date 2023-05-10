@@ -17,7 +17,7 @@ headers_eng: dict = {
     ("Наименование",): "company_name",
     ("КПП",): "kpp",
     ("ОГРН",): "ogrn",
-    ("ФИО руководителя",): "director_full_name",
+    ("ФИО руководителя", "Ген.директор"): "director_full_name",
     ("Должность руководителя",): "position",
     ("Номер телефона", "Телефон"): list_join_columns[0],
     ("Дополнительный телефон 1",): list_join_columns[0],
@@ -66,16 +66,32 @@ class ReferenceCompass(object):
     def change_data_in_db(parsed_data: list):
         client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'), username=os.getenv('USERNAME_DB'),
                             password=os.getenv('PASSWORD'))
-        client.query("SET allow_experimental_lightweight_delete = 1")
-        for dict_data in parsed_data:
+        client.query("SET allow_experimental_lightweight_delete=1")
+        for index, dict_data in enumerate(parsed_data):
             for key, value in dict_data.items():
                 if key in ["inn"]:
                     for row in client.query(f"SELECT * FROM reference_compass WHERE inn='{value}'").result_rows:
-                        if len([x for x in row if x is not None]) < len([x for x in dict_data.values() if x is not None]):
-                            print(row)
-                            # client.query(f"DELETE FROM reference_compass WHERE inn='{value}' "
-                            #              f"and MIN(original_file_index")
+                        if len([x for x in row if x is not None]) < \
+                                len([x for x in dict_data.values() if x is not None]):
+                            client.query(f"DELETE FROM reference_compass WHERE inn='{value}'")
+                        else:
+                            parsed_data.pop(index)
                     break
+
+    @staticmethod
+    def leave_largest_data_with_dupl_inn(parsed_data: list) -> list:
+        """
+        Leave the rows with the largest amount of data with repeated INN.
+        """
+        uniq_parsed_parsed_data: list = []
+        list_values: list = [list(i.values()) for i in parsed_data]
+        for index, d in enumerate(parsed_data):
+            duplicate_inn: list = [d for index_dupl, list_value in enumerate(list_values) if d["inn"] in list_value
+                                   and len([x for x in list(d.values()) if x is not None]) <
+                                   len([x for x in list_value if x is not None]) and index_dupl != index]
+            if not duplicate_inn and d not in uniq_parsed_parsed_data:
+                uniq_parsed_parsed_data.append(d)
+        return uniq_parsed_parsed_data
 
     def change_type_and_values(self, parsed_data: list) -> None:
         """
@@ -92,7 +108,7 @@ class ReferenceCompass(object):
         """
         Add new columns.
         """
-        dict_data["original_file_index"] = index
+        # dict_data["original_file_index"] = index
         dict_data['original_file_name'] = os.path.basename(self.input_file_path)
         dict_data['original_file_parsed_on'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
@@ -148,6 +164,7 @@ class ReferenceCompass(object):
             self.get_value_from_cell(column, dict_header, dict_columns)
             parsed_data.append(dict_columns)
         self.change_type_and_values(parsed_data)
+        parsed_data = self.leave_largest_data_with_dupl_inn(parsed_data)
         self.change_data_in_db(parsed_data)
         self.write_to_json(parsed_data)
 
