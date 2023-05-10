@@ -68,7 +68,8 @@ class ReferenceCompass(object):
         client: Client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'),
                                     username=os.getenv('USERNAME_DB'), password=os.getenv('PASSWORD'))
         client.query("SET allow_experimental_lightweight_delete=1")
-        for index, dict_data in enumerate(parsed_data):
+        parsed_data_copy = parsed_data.copy()
+        for dict_data in parsed_data_copy:
             for key, value in dict_data.items():
                 if key in ["inn"]:
                     for row in client.query(f"SELECT * FROM reference_compass WHERE inn='{value}'").result_rows:
@@ -76,7 +77,7 @@ class ReferenceCompass(object):
                                 len([x for x in dict_data.values() if x is not None]):
                             client.query(f"DELETE FROM reference_compass WHERE inn='{value}'")
                         else:
-                            parsed_data.pop(index)
+                            parsed_data.pop(parsed_data.index(dict_data))
                     break
 
     @staticmethod
