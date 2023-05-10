@@ -63,7 +63,7 @@ class ReferenceCompass(object):
         self.output_folder: str = output_folder
 
     @staticmethod
-    def change_data_in_db(parsed_data: list):
+    def change_data_in_db(parsed_data: list) -> None:
         client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'), username=os.getenv('USERNAME_DB'),
                             password=os.getenv('PASSWORD'))
         client.query("SET allow_experimental_lightweight_delete=1")
@@ -102,13 +102,12 @@ class ReferenceCompass(object):
                 with contextlib.suppress(Exception):
                     if key in ["registration_date"]:
                         dict_data[key] = str(value.date())
-            self.add_new_columns(dict_data, index)
+            self.add_new_columns(dict_data)
 
-    def add_new_columns(self, dict_data: dict, index: int) -> None:
+    def add_new_columns(self, dict_data: dict) -> None:
         """
         Add new columns.
         """
-        # dict_data["original_file_index"] = index
         dict_data['original_file_name'] = os.path.basename(self.input_file_path)
         dict_data['original_file_parsed_on'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
@@ -164,7 +163,7 @@ class ReferenceCompass(object):
             self.get_value_from_cell(column, dict_header, dict_columns)
             parsed_data.append(dict_columns)
         self.change_type_and_values(parsed_data)
-        parsed_data = self.leave_largest_data_with_dupl_inn(parsed_data)
+        parsed_data: list = self.leave_largest_data_with_dupl_inn(parsed_data)
         self.change_data_in_db(parsed_data)
         self.write_to_json(parsed_data)
 
