@@ -85,12 +85,15 @@ class ReferenceCompass(object):
         Leave the rows with the largest amount of data with repeated INN.
         """
         uniq_parsed_parsed_data: list = []
-        list_values: list = [list(i.values()) for i in parsed_data]
-        for index, d in enumerate(parsed_data):
-            duplicate_inn: list = [d for index_dupl, list_value in enumerate(list_values) if d["inn"] in list_value
-                                   and len([x for x in list(d.values()) if x is not None]) <
-                                   len([x for x in list_value if x is not None]) and index_dupl != index]
-            if not duplicate_inn and not [cache for cache in uniq_parsed_parsed_data if d["inn"] == cache["inn"]]:
+        for d in parsed_data:
+            if [cache for cache in uniq_parsed_parsed_data if d["inn"] == cache["inn"]]:
+                index_dupl: int = uniq_parsed_parsed_data.index(next(filter(lambda n: n.get('inn') == d["inn"],
+                                                                            uniq_parsed_parsed_data)))
+                if len([x for x in list(d.values()) if x is not None]) > \
+                        len([x for x in uniq_parsed_parsed_data[index_dupl].values() if x is not None]):
+                    uniq_parsed_parsed_data.pop(index_dupl)
+                    uniq_parsed_parsed_data.append(d)
+            else:
                 uniq_parsed_parsed_data.append(d)
         return uniq_parsed_parsed_data
 
@@ -165,7 +168,7 @@ class ReferenceCompass(object):
             parsed_data.append(dict_columns)
         self.change_type_and_values(parsed_data)
         parsed_data: list = self.leave_largest_data_with_dupl_inn(parsed_data)
-        self.change_data_in_db(parsed_data)
+        # self.change_data_in_db(parsed_data)
         self.write_to_json(parsed_data)
 
 
