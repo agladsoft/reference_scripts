@@ -90,7 +90,7 @@ class ReferenceCompass(object):
             duplicate_inn: list = [d for index_dupl, list_value in enumerate(list_values) if d["inn"] in list_value
                                    and len([x for x in list(d.values()) if x is not None]) <
                                    len([x for x in list_value if x is not None]) and index_dupl != index]
-            if not duplicate_inn and d not in uniq_parsed_parsed_data:
+            if not duplicate_inn and not [cache for cache in uniq_parsed_parsed_data if d["inn"] == cache["inn"]]:
                 uniq_parsed_parsed_data.append(d)
         return uniq_parsed_parsed_data
 
