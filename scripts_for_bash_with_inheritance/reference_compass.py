@@ -5,6 +5,7 @@ import contextlib
 from datetime import datetime
 from dotenv import load_dotenv
 from clickhouse_connect import get_client
+from clickhouse_connect.driver import Client
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
@@ -64,8 +65,8 @@ class ReferenceCompass(object):
 
     @staticmethod
     def change_data_in_db(parsed_data: list) -> None:
-        client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'), username=os.getenv('USERNAME_DB'),
-                            password=os.getenv('PASSWORD'))
+        client: Client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'),
+                                    username=os.getenv('USERNAME_DB'), password=os.getenv('PASSWORD'))
         client.query("SET allow_experimental_lightweight_delete=1")
         for index, dict_data in enumerate(parsed_data):
             for key, value in dict_data.items():
