@@ -170,7 +170,7 @@ class ReferenceCompass(object):
             parsed_data.append(dict_columns)
         self.change_type_and_values(parsed_data)
         parsed_data: list = self.leave_largest_data_with_dupl_inn(parsed_data)
-        # self.change_data_in_db(parsed_data)
+        self.change_data_in_db(parsed_data)
         self.write_to_json(parsed_data)
 
 
