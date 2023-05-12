@@ -69,8 +69,8 @@ class ReferenceCompass(object):
                                     username=os.getenv('USERNAME_DB'), password=os.getenv('PASSWORD'))
         client.query("SET allow_experimental_lightweight_delete=1")
         parsed_data_copy: list = parsed_data.copy()
-        for dict_data in parsed_data_copy:
-            with contextlib.suppress(ValueError):
+        with contextlib.suppress(ValueError):
+            for dict_data in parsed_data_copy:
                 for key, value in dict_data.items():
                     if key in ["inn"]:
                         for row in client.query(f"SELECT * FROM reference_compass WHERE inn='{value}'").result_rows:
