@@ -70,15 +70,16 @@ class ReferenceCompass(object):
         client.query("SET allow_experimental_lightweight_delete=1")
         parsed_data_copy: list = parsed_data.copy()
         for dict_data in parsed_data_copy:
-            for key, value in dict_data.items():
-                if key in ["inn"]:
-                    for row in client.query(f"SELECT * FROM reference_compass WHERE inn='{value}'").result_rows:
-                        if len([x for x in row if x is not None]) < \
-                                len([x for x in dict_data.values() if x is not None]):
-                            client.query(f"DELETE FROM reference_compass WHERE inn='{value}'")
-                        else:
-                            parsed_data.pop(parsed_data.index(dict_data))
-                    break
+            with contextlib.suppress(ValueError):
+                for key, value in dict_data.items():
+                    if key in ["inn"]:
+                        for row in client.query(f"SELECT * FROM reference_compass WHERE inn='{value}'").result_rows:
+                            if len([x for x in row if x is not None]) < \
+                                    len([x for x in dict_data.values() if x is not None]):
+                                client.query(f"DELETE FROM reference_compass WHERE inn='{value}'")
+                            else:
+                                parsed_data.pop(parsed_data.index(dict_data))
+                        break
 
     @staticmethod
     def leave_largest_data_with_dupl_inn(parsed_data: list) -> list:
@@ -169,7 +170,7 @@ class ReferenceCompass(object):
             parsed_data.append(dict_columns)
         self.change_type_and_values(parsed_data)
         parsed_data: list = self.leave_largest_data_with_dupl_inn(parsed_data)
-        self.change_data_in_db(parsed_data)
+        # self.change_data_in_db(parsed_data)
         self.write_to_json(parsed_data)
 
 
