@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from deep_translator import GoogleTranslator
 from fuzzywuzzy import fuzz
+from dadata import Dadata
 
 worker_count = 4
 
@@ -48,6 +49,7 @@ df = pd.read_csv(input_file_path, dtype=str)
 df['company_name_rus'] = None
 df['is_inn_found_auto'] = False
 df['confidence_rate'] = None
+df['company_name_dadata_unified'] = None
 df = df.replace({np.nan: None})
 df = df.dropna(axis=0, how='all')
 df = df.rename(columns=headers_eng)
@@ -55,14 +57,28 @@ df = trim_all_columns(df)
 parsed_data = df.to_dict('records')
 
 
+def get_company_name_from_dadata(value: str, dadata_name: str = None):
+    """
+    Looking for a company name unified from the website of legal entities.
+    """
+    try:
+        dadata = Dadata("6563fd1ad7d12797dc2eb47285547e1d25c5af0e")
+        dadata_inn = dadata.find_by_id("party", value)[0]
+        return dadata_inn['value']
+    except (IndexError, ValueError, TypeError):
+        return dadata_name
+
+
 def parse_data(i, dict_data):
     for key, value in dict_data.items():
         with contextlib.suppress(Exception):
-            if key == 'company_name_unified':
-                company_name_unified = value
+            if key == 'company_inn':
+                dict_data["company_name_dadata_unified"] = get_company_name_from_dadata(value)
             elif key == 'company_name':
                 company_name_rus = GoogleTranslator(source='en', target='ru').translate(value)
                 dict_data['company_name_rus'] = company_name_rus
+            elif key == 'company_name_unified':
+                company_name_unified = value
             elif key == 'confidence_rate':
                 company_name_unified = re.sub(" +", " ", company_name_unified)
                 company_name_rus = re.sub(" +", " ", company_name_rus)
