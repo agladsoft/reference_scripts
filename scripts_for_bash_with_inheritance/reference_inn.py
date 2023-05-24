@@ -62,7 +62,7 @@ def get_company_name_from_dadata(value: str, dadata_name: str = None):
     Looking for a company name unified from the website of legal entities.
     """
     try:
-        dadata = Dadata("6563fd1ad7d12797dc2eb47285547e1d25c5af0e")
+        dadata = Dadata("baf71b4b95c986ce9148c24f5aa251d94cd9d850")
         dadata_inn = dadata.find_by_id("party", value)[0]
         return dadata_inn['value']
     except (IndexError, ValueError, TypeError):
