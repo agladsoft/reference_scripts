@@ -13,6 +13,7 @@ from fuzzywuzzy import fuzz
 from dadata import Dadata
 
 worker_count = 4
+token_dadata = "baf71b4b95c986ce9148c24f5aa251d94cd9d850"
 
 if not os.path.exists(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging"):
     os.mkdir(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging")
@@ -62,7 +63,7 @@ def get_company_name_from_dadata(value: str, dadata_name: str = None):
     Looking for a company name unified from the website of legal entities.
     """
     try:
-        dadata = Dadata("baf71b4b95c986ce9148c24f5aa251d94cd9d850")
+        dadata = Dadata(token_dadata)
         dadata_inn = dadata.find_by_id("party", value)[0]
         return dadata_inn['value']
     except (IndexError, ValueError, TypeError):
