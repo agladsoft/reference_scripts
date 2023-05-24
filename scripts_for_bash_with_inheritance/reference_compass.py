@@ -195,7 +195,7 @@ class ReferenceCompass(object):
                         dict_header[cell.column_letter] = cell.internal_value, value
 
     @staticmethod
-    def get_value_from_cell(column: tuple, dict_header: dict, dict_columns: dict) -> None:
+    def get_value_from_cell(index: int, column: tuple, dict_header: dict, dict_columns: dict) -> None:
         """
         Get a value from a cell, including url.
         """
@@ -208,6 +208,10 @@ class ReferenceCompass(object):
                             continue
                         dict_columns[value[1]] = cell.hyperlink.target
                     except AttributeError:
+                        if value[1] == 'inn' and len(cell.value) < 10:
+                            logger.error(f"Error code: error processing in row {index + 1}!")
+                            print(f"in_row_{index + 1}", file=sys.stderr)
+                            sys.exit(1)
                         dict_columns[value[1]] = cell.value
 
     def main(self) -> None:
@@ -224,7 +228,7 @@ class ReferenceCompass(object):
             if i == 0:
                 self.get_column_eng(column, dict_header)
                 continue
-            self.get_value_from_cell(column, dict_header, dict_columns)
+            self.get_value_from_cell(i, column, dict_header, dict_columns)
             parsed_data.append(dict_columns)
         self.change_type_and_values(parsed_data)
         parsed_data: list = self.leave_largest_data_with_dupl_inn(parsed_data)
@@ -233,6 +237,7 @@ class ReferenceCompass(object):
         logger.info("The script has completed its work")
 
 
-reference_compass: ReferenceCompass = ReferenceCompass(sys.argv[1], sys.argv[2],
-                                                       "baf71b4b95c986ce9148c24f5aa251d94cd9d850")
-reference_compass.main()
+if __name__ == "__main__":
+    reference_compass: ReferenceCompass = ReferenceCompass(sys.argv[1], sys.argv[2],
+                                                           "baf71b4b95c986ce9148c24f5aa251d94cd9d850")
+    reference_compass.main()
