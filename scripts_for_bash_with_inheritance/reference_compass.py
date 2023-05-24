@@ -162,7 +162,7 @@ class ReferenceCompass(object):
         try:
             dadata_request = dadata.find_by_id("party", dict_data["inn"])
         except Exception as ex:
-            logger.error(f"{ex, type(ex), dict_data}")
+            logger.error(f"Failed to connect to dadata {ex, type(ex), dict_data}")
             dadata_request = None
         if dadata_request:
             for company in dadata_request:
