@@ -114,7 +114,7 @@ class ReferenceCompass(object):
                     if key in ["registration_date"]:
                         dict_data[key] = str(value.date())
             self.add_new_columns(dict_data)
-            self.connect_to_dadata(dict_data)
+            self.connect_to_dadata(dict_data, index)
             if not dict_data["dadata_branch_name"] and not dict_data["dadata_branch_address"] \
                     and not dict_data["dadata_branch_region"]:
                 dict_data["dadata_branch_name"] = None
@@ -148,13 +148,13 @@ class ReferenceCompass(object):
         dict_data["dadata_city"] = company_adress_data["city"]
         dict_data["dadata_okved_activity_main_type"] = company_data["okved"]
         dict_data["dadata_branch_name"] += f'{company["value"]}, КПП {company_data.get("kpp", "")}' + '\n' \
-            if company_data["branch_type"] == "BRANCH" else ''
+            if company_data_branch == "BRANCH" else ''
         dict_data["dadata_branch_address"] += company_adress["unrestricted_value"] + '\n' \
             if company_data_branch == "BRANCH" else ''
         dict_data["dadata_branch_region"] += company_adress_data["region_with_type"] + '\n' \
             if company_data_branch == "BRANCH" else ''
 
-    def connect_to_dadata(self, dict_data: dict) -> None:
+    def connect_to_dadata(self, dict_data: dict, index: int) -> None:
         """
         Connect to dadata.
         """
@@ -171,8 +171,13 @@ class ReferenceCompass(object):
                 company_adress_data: dict = company_adress.get("data", {})
                 company_data_branch: dict = company_data.get("branch_type")
                 if company_data and company_adress:
-                    self.add_dadata_columns(company_data, company_adress, company_adress_data, company_data_branch,
-                                            company, dict_data)
+                    try:
+                        self.add_dadata_columns(company_data, company_adress, company_adress_data, company_data_branch,
+                                                company, dict_data)
+                    except Exception:
+                        logger.error(f"Error code: error processing in row {index + 1}! Data is {dict_data}")
+                        print(f"in_row_{index + 1}", file=sys.stderr)
+                        sys.exit(1)
 
     def write_to_json(self, parsed_data: list) -> None:
         """
