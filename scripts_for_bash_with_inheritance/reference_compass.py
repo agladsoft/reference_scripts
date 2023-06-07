@@ -132,7 +132,7 @@ class ReferenceCompass(object):
         dict_data["dadata_branch_region"] = ''
 
     @staticmethod
-    def add_dadata_columns(company_data: dict, company_adress: dict, company_adress_data: dict,
+    def add_dadata_columns(company_data: dict, company_address: dict, company_address_data: dict,
                            company_data_branch: dict, company: dict, dict_data: dict) -> None:
         """
         Add values from dadata to the dictionary.
@@ -140,18 +140,21 @@ class ReferenceCompass(object):
         dict_data["dadata_company_name"] = f'' \
             f'{company_data.get("opf").get("short", "") if company_data.get("opf") else ""} ' \
             f'{company_data["name"]["full"]}'.strip()
-        dict_data["dadata_address"] = company_adress["unrestricted_value"] \
-            if company_data_branch == "MAIN" else None
-        dict_data["dadata_region"] = company_adress_data["region_with_type"] \
-            if company_data_branch == "MAIN" else None
-        dict_data["dadata_federal_district"] = company_adress_data["federal_district"]
-        dict_data["dadata_city"] = company_adress_data["city"]
-        dict_data["dadata_okved_activity_main_type"] = company_data["okved"]
+        dict_data["dadata_address"] = company_address["unrestricted_value"] \
+            if company_data_branch == "MAIN" else dict_data["dadata_address"]
+        dict_data["dadata_region"] = company_address_data["region_with_type"] \
+            if company_data_branch == "MAIN" else dict_data["dadata_region"]
+        dict_data["dadata_federal_district"] = company_address_data["federal_district"] \
+            if company_data_branch == "MAIN" else dict_data["dadata_federal_district"]
+        dict_data["dadata_city"] = company_address_data["city"] \
+            if company_data_branch == "MAIN" else dict_data["dadata_city"]
+        dict_data["dadata_okved_activity_main_type"] = company_data["okved"] \
+            if company_data_branch == "MAIN" else dict_data["dadata_okved_activity_main_type"]
         dict_data["dadata_branch_name"] += f'{company["value"]}, КПП {company_data.get("kpp", "")}' + '\n' \
             if company_data_branch == "BRANCH" else ''
-        dict_data["dadata_branch_address"] += company_adress["unrestricted_value"] + '\n' \
+        dict_data["dadata_branch_address"] += company_address["unrestricted_value"] + '\n' \
             if company_data_branch == "BRANCH" else ''
-        dict_data["dadata_branch_region"] += company_adress_data["region_with_type"] + '\n' \
+        dict_data["dadata_branch_region"] += company_address_data["region_with_type"] + '\n' \
             if company_data_branch == "BRANCH" else ''
 
     def connect_to_dadata(self, dict_data: dict, index: int) -> None:
@@ -160,19 +163,19 @@ class ReferenceCompass(object):
         """
         dadata: DadataClient = DadataClient(self.token)
         try:
-            dadata_request = dadata.find_by_id("party", dict_data["inn"])
+            dadata_request = dadata.find_by_id("party", "7701262328")
         except Exception as ex:
             logger.error(f"Failed to connect to dadata {ex, type(ex), dict_data}")
             dadata_request = None
         if dadata_request:
             for company in dadata_request:
                 company_data: dict = company.get("data")
-                company_adress: dict = company_data.get("address")
-                company_adress_data: dict = company_adress.get("data", {})
+                company_address: dict = company_data.get("address")
+                company_address_data: dict = company_address.get("data", {})
                 company_data_branch: dict = company_data.get("branch_type")
-                if company_data and company_adress:
+                if company_data and company_address:
                     try:
-                        self.add_dadata_columns(company_data, company_adress, company_adress_data, company_data_branch,
+                        self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
                                                 company, dict_data)
                     except Exception:
                         logger.error(f"Error code: error processing in row {index + 1}! Data is {dict_data}")
@@ -213,7 +216,7 @@ class ReferenceCompass(object):
                             continue
                         dict_columns[value[1]] = cell.hyperlink.target
                     except AttributeError:
-                        if value[1] == 'inn' and len(cell.value) < 10:
+                        if value[1] == 'inn' and len(str(cell.value)) < 10:
                             logger.error(f"Error code: error processing in row {index + 1}!")
                             print(f"in_row_{index + 1}", file=sys.stderr)
                             sys.exit(1)
