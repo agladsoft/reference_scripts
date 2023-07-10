@@ -74,10 +74,11 @@ def parse_data(i, dict_data):
 
     logging.info(f'{i} data is {dict_data}')
     logger_stream.info(f'{i} data is {dict_data}')
-    basename = os.path.basename(input_file_path)
-    output_file_path = os.path.join(output_folder, f'{basename}_{i}.json')
-    with open(f"{output_file_path}", 'w', encoding='utf-8') as f:
-        json.dump(dict_data, f, ensure_ascii=False, indent=4)
+    if dict_data["company_inn"].isdigit():
+        basename = os.path.basename(input_file_path)
+        output_file_path = os.path.join(output_folder, f'{basename}_{i}.json')
+        with open(f"{output_file_path}", 'w', encoding='utf-8') as f:
+            json.dump(dict_data, f, ensure_ascii=False, indent=4)
 
 
 procs = []
