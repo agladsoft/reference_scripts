@@ -5,11 +5,7 @@ import sys
 import json
 from itertools import tee
 import datetime
-
-month_list = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь",
-         "декабрь"]
-month_list_upper = [month.upper() for month in month_list]
-month_list_title = [month.title() for month in month_list]
+from __init__ import LIST_MONTHS
 
 if not os.path.exists("logging"):
     os.mkdir("logging")
@@ -48,8 +44,8 @@ def process(input_file_path):
             for month in text:
                 if month.isdigit():
                     year = int(month)
-                if month in month_list:
-                    month_digit = month_list.index(month) + 1
+                if month in LIST_MONTHS:
+                    month_digit = LIST_MONTHS.index(month) + 1
                     # year = text.index(month) + 1
             context["month"] = month_digit
             context["year"] = year
