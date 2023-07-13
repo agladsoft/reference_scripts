@@ -45,7 +45,7 @@ class ReferenceMorService(object):
         return zip(a, b)
 
     @staticmethod
-    def get_date_from_header(data: str, context: dict) -> None:
+    def _get_date_from_header(data: str, context: dict) -> None:
         """
         Получаем данные, связанные с датой.
         :param data: Ячейка в csv.
@@ -61,7 +61,7 @@ class ReferenceMorService(object):
                 context["year"] = int(date)
         context["datetime"] = f"{context['year']}-{context['month'] :02}-01"
 
-    def get_direction_indexes(self, lines: list, context: dict) -> None:
+    def _get_direction_indexes(self, lines: list, context: dict) -> None:
         """
         Получаем индексы направлений (export, import, transit, cabotage) в таблице.
         :param lines: Сырые данные.
@@ -91,7 +91,7 @@ class ReferenceMorService(object):
             result = 0.0
         return result
 
-    def get_data_from_direction(self, terminal_operator: str, lines: list, context: dict, parsed_data: list) -> None:
+    def _get_data_from_direction(self, terminal_operator: str, lines: list, context: dict, parsed_data: list) -> None:
         """
         Получаем данные из направлений и вычисляем teu.
         :param terminal_operator: Оператор терминала.
@@ -124,15 +124,15 @@ class ReferenceMorService(object):
         for i, line in enumerate(lines):
             for data in line:
                 if "Объём перевалки грузов" in data:
-                    self.get_date_from_header(data, context)
+                    self._get_date_from_header(data, context)
                 elif "Бассейн" in data and "Порт" in data:
-                    self.get_direction_indexes(lines[i:i+2], context)
+                    self._get_direction_indexes(lines[i:i + 2], context)
                 elif "бассейн" in data:
                     context["bay"] = data
                 elif "Порт" in data and "Итого" not in data:
                     context["port"] = data
                 elif "тыс.тонн" in data and "Итого \n" + context["port"] not in line:
-                    self.get_data_from_direction(line[0], lines[i+2:i+6], context, parsed_data)
+                    self._get_data_from_direction(line[0], lines[i + 2:i + 6], context, parsed_data)
         return parsed_data
 
     def write_to_json(self, parsed_data: list) -> None:
