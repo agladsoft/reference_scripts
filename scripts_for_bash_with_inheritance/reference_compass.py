@@ -1,9 +1,11 @@
 import os
 import sys
 import json
+import app_logger
 import contextlib
 from datetime import datetime
 from dotenv import load_dotenv
+from dadata.sync import DadataClient
 from clickhouse_connect import get_client
 from clickhouse_connect.driver import Client
 from openpyxl import Workbook, load_workbook
@@ -12,6 +14,8 @@ from openpyxl.worksheet.worksheet import Worksheet
 load_dotenv()
 
 list_join_columns: list = ["telephone_number", "email"]
+
+logger: app_logger = app_logger.get_logger(os.path.basename(__file__).replace(".py", ""))
 
 headers_eng: dict = {
     ("ИНН",): "inn",
@@ -59,9 +63,10 @@ headers_eng: dict = {
 
 
 class ReferenceCompass(object):
-    def __init__(self, input_file_path: str, output_folder: str):
+    def __init__(self, input_file_path: str, output_folder: str, token):
         self.input_file_path: str = input_file_path
         self.output_folder: str = output_folder
+        self.token = token
 
     @staticmethod
     def change_data_in_db(parsed_data: list) -> None:
@@ -109,6 +114,12 @@ class ReferenceCompass(object):
                     if key in ["registration_date"]:
                         dict_data[key] = str(value.date())
             self.add_new_columns(dict_data)
+            self.connect_to_dadata(dict_data, index)
+            if not dict_data["dadata_branch_name"] and not dict_data["dadata_branch_address"] \
+                    and not dict_data["dadata_branch_region"]:
+                dict_data["dadata_branch_name"] = None
+                dict_data["dadata_branch_address"] = None
+                dict_data["dadata_branch_region"] = None
 
     def add_new_columns(self, dict_data: dict) -> None:
         """
@@ -116,6 +127,60 @@ class ReferenceCompass(object):
         """
         dict_data['original_file_name'] = os.path.basename(self.input_file_path)
         dict_data['original_file_parsed_on'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        dict_data["dadata_branch_name"] = ''
+        dict_data["dadata_branch_address"] = ''
+        dict_data["dadata_branch_region"] = ''
+
+    @staticmethod
+    def add_dadata_columns(company_data: dict, company_address: dict, company_address_data: dict,
+                           company_data_branch: dict, company: dict, dict_data: dict) -> None:
+        """
+        Add values from dadata to the dictionary.
+        """
+        dict_data["dadata_company_name"] = f'' \
+            f'{company_data.get("opf").get("short", "") if company_data.get("opf") else ""} ' \
+            f'{company_data["name"]["full"]}'.strip()
+        dict_data["dadata_address"] = company_address["unrestricted_value"] \
+            if company_data_branch == "MAIN" else dict_data["dadata_address"]
+        dict_data["dadata_region"] = company_address_data["region_with_type"] \
+            if company_data_branch == "MAIN" else dict_data["dadata_region"]
+        dict_data["dadata_federal_district"] = company_address_data["federal_district"] \
+            if company_data_branch == "MAIN" else dict_data["dadata_federal_district"]
+        dict_data["dadata_city"] = company_address_data["city"] \
+            if company_data_branch == "MAIN" else dict_data["dadata_city"]
+        dict_data["dadata_okved_activity_main_type"] = company_data["okved"] \
+            if company_data_branch == "MAIN" else dict_data["dadata_okved_activity_main_type"]
+        dict_data["dadata_branch_name"] += f'{company["value"]}, КПП {company_data.get("kpp", "")}' + '\n' \
+            if company_data_branch == "BRANCH" else ''
+        dict_data["dadata_branch_address"] += company_address["unrestricted_value"] + '\n' \
+            if company_data_branch == "BRANCH" else ''
+        dict_data["dadata_branch_region"] += company_address_data["region_with_type"] + '\n' \
+            if company_data_branch == "BRANCH" else ''
+
+    def connect_to_dadata(self, dict_data: dict, index: int) -> None:
+        """
+        Connect to dadata.
+        """
+        dadata: DadataClient = DadataClient(self.token)
+        try:
+            dadata_request = dadata.find_by_id("party", dict_data["inn"])
+        except Exception as ex:
+            logger.error(f"Failed to connect to dadata {ex, type(ex), dict_data}")
+            dadata_request = None
+        if dadata_request:
+            for company in dadata_request:
+                company_data: dict = company.get("data")
+                company_address: dict = company_data.get("address")
+                company_address_data: dict = company_address.get("data", {})
+                company_data_branch: dict = company_data.get("branch_type")
+                if company_data and company_address:
+                    try:
+                        self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
+                                                company, dict_data)
+                    except Exception:
+                        logger.error(f"Error code: error processing in row {index + 1}! Data is {dict_data}")
+                        print(f"in_row_{index + 1}", file=sys.stderr)
+                        sys.exit(1)
 
     def write_to_json(self, parsed_data: list) -> None:
         """
@@ -138,7 +203,7 @@ class ReferenceCompass(object):
                         dict_header[cell.column_letter] = cell.internal_value, value
 
     @staticmethod
-    def get_value_from_cell(column: tuple, dict_header: dict, dict_columns: dict) -> None:
+    def get_value_from_cell(index: int, column: tuple, dict_header: dict, dict_columns: dict) -> None:
         """
         Get a value from a cell, including url.
         """
@@ -151,12 +216,17 @@ class ReferenceCompass(object):
                             continue
                         dict_columns[value[1]] = cell.hyperlink.target
                     except AttributeError:
+                        if value[1] == 'inn' and len(str(cell.value)) < 10:
+                            logger.error(f"Error code: error processing in row {index + 1}!")
+                            print(f"in_row_{index + 1}", file=sys.stderr)
+                            sys.exit(1)
                         dict_columns[value[1]] = cell.value
 
     def main(self) -> None:
         """
         The main function where we read the Excel file and write the file to json.
         """
+        logger.info(f"Filename is {self.input_file_path}")
         wb: Workbook = load_workbook(self.input_file_path)
         ws: Worksheet = wb[wb.sheetnames[0]]
         parsed_data: list = []
@@ -166,13 +236,16 @@ class ReferenceCompass(object):
             if i == 0:
                 self.get_column_eng(column, dict_header)
                 continue
-            self.get_value_from_cell(column, dict_header, dict_columns)
+            self.get_value_from_cell(i, column, dict_header, dict_columns)
             parsed_data.append(dict_columns)
         self.change_type_and_values(parsed_data)
         parsed_data: list = self.leave_largest_data_with_dupl_inn(parsed_data)
         self.change_data_in_db(parsed_data)
         self.write_to_json(parsed_data)
+        logger.info("The script has completed its work")
 
 
-reference_compass: ReferenceCompass = ReferenceCompass(sys.argv[1], sys.argv[2])
-reference_compass.main()
+if __name__ == "__main__":
+    reference_compass: ReferenceCompass = ReferenceCompass(sys.argv[1], sys.argv[2],
+                                                           "baf71b4b95c986ce9148c24f5aa251d94cd9d850")
+    reference_compass.main()
