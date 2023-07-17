@@ -12,14 +12,17 @@ HEADERS_ENG: dict = {
     "OPERATOR": "operator",
     "Pier": "pier",
     "STIVIDOR": "stividor",
-    "ATA (Вошел в зону СУДС)": "ata_enter_zone",
-    "ATB (Ошварт. у причала)": "atb_moor_pier",
-    "ATD (отошел от причала)": "atd_move_pier",
+    "ATA": "ata_enter_zone",
+    "ATB": "atb_moor_pier",
+    "ATD": "atd_move_pier",
     "POL (прибыл из)": "pol_arrive",
-    "Next POD (убыл в)": "next_left",
-    "In": "in",
-    "Out": "out",
-    "Comment": "comment"
+    "Next POD": "next_left",
+    "total volume IN": "total_volume_in",
+    "total volume OUT": "total_volume_out",
+    "Comment": "comment",
+    "volume IN NUTEP": "volume_in_nutep",
+    "volume OUT NUTEP": "volume_out_nutep",
+    "sign NUTEP": "sign_nutep"
 }
 
 DATE_FORMATS: list = ["%Y-%m-%d %H:%M:%S", "%d.%m.%Y %H:%M", "%d.%m.%y %H:%M"]
