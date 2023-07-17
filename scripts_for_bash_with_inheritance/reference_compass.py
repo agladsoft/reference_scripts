@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import warnings
 import app_logger
 import contextlib
 from datetime import datetime
@@ -226,23 +227,25 @@ class ReferenceCompass(object):
         """
         The main function where we read the Excel file and write the file to json.
         """
-        logger.info(f"Filename is {self.input_file_path}")
-        wb: Workbook = load_workbook(self.input_file_path)
-        ws: Worksheet = wb[wb.sheetnames[0]]
-        parsed_data: list = []
-        dict_header: dict = {}
-        for i, column in enumerate(ws):
-            dict_columns: dict = {}
-            if i == 0:
-                self.get_column_eng(column, dict_header)
-                continue
-            self.get_value_from_cell(i, column, dict_header, dict_columns)
-            parsed_data.append(dict_columns)
-        self.change_type_and_values(parsed_data)
-        parsed_data: list = self.leave_largest_data_with_dupl_inn(parsed_data)
-        self.change_data_in_db(parsed_data)
-        self.write_to_json(parsed_data)
-        logger.info("The script has completed its work")
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            logger.info(f"Filename is {self.input_file_path}")
+            wb: Workbook = load_workbook(self.input_file_path)
+            ws: Worksheet = wb[wb.sheetnames[0]]
+            parsed_data: list = []
+            dict_header: dict = {}
+            for i, column in enumerate(ws):
+                dict_columns: dict = {}
+                if i == 0:
+                    self.get_column_eng(column, dict_header)
+                    continue
+                self.get_value_from_cell(i, column, dict_header, dict_columns)
+                parsed_data.append(dict_columns)
+            self.change_type_and_values(parsed_data)
+            parsed_data: list = self.leave_largest_data_with_dupl_inn(parsed_data)
+            self.change_data_in_db(parsed_data)
+            self.write_to_json(parsed_data)
+            logger.info("The script has completed its work")
 
 
 if __name__ == "__main__":
