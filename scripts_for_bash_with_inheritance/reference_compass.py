@@ -256,4 +256,4 @@ if __name__ == "__main__":
     except Exception as ex:
         logger.error(f"Error code: unknown error - {ex}!")
         print("unknown_error", file=sys.stderr)
-        sys.exit(6)
+        sys.exit(1)
