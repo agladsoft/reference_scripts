@@ -251,4 +251,9 @@ class ReferenceCompass(object):
 if __name__ == "__main__":
     reference_compass: ReferenceCompass = ReferenceCompass(sys.argv[1], sys.argv[2],
                                                            "baf71b4b95c986ce9148c24f5aa251d94cd9d850")
-    reference_compass.main()
+    try:
+        reference_compass.main()
+    except Exception as ex:
+        logger.error(f"Error code: unknown error - {ex}!")
+        print("unknown_error", file=sys.stderr)
+        sys.exit(6)
