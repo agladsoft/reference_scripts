@@ -102,8 +102,6 @@ class ReferenceMorService(object):
         """
         for current_line, next_line in self.pairwise(lines):
             for column, indexes in self.dict_columns_position.items():
-                if terminal_operator == 'ЗАО "АРКТИК-КОНСАЛТИНГ-СЕРВИС"':
-                    print()
                 parsed_record: dict = {
                     "direction": column,
                     "terminal_operator": terminal_operator,
