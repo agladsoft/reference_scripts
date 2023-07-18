@@ -79,16 +79,16 @@ class ReferenceMorService(object):
                 )
 
     @staticmethod
-    def parse_float(value: str) -> float:
+    def parse_float(value: str) -> Union[float, None]:
         """
         Преобразовываем значение в число с плавающей запятой, а при пустой строке указываем 0.0.
         :param value: Значение.
         :return: Число с плавающей запятой.
         """
         try:
-            result: float = float(value)
+            result: Union[float, None] = float(value)
         except ValueError:
-            result = 0.0
+            result = None
         return result
 
     def _get_data_from_direction(self, terminal_operator: str, lines: list, context: dict, parsed_data: list) -> None:
@@ -108,7 +108,8 @@ class ReferenceMorService(object):
                     "is_empty": current_line[1] == 'порожние',
                     "container_type": 'REF' if current_line[1] == 'из них реф.' else None,
                     "teu": self.parse_float(current_line[indexes[1]]) - self.parse_float(next_line[indexes[1]])
-                    if current_line[1] == 'груженые' and current_line[indexes[1]] else None
+                    if current_line[1] == 'груженые' and current_line[indexes[1]] and next_line[indexes[1]]
+                    else self.parse_float(current_line[indexes[1]])
                 }
                 parsed_data.append(self.merge_two_dicts(context, parsed_record))
 
