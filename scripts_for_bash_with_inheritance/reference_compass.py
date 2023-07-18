@@ -158,17 +158,10 @@ class ReferenceCompass(object):
         dict_data["dadata_branch_region"] += company_address_data["region_with_type"] + '\n' \
             if company_data_branch == "BRANCH" else ''
 
-    def connect_to_dadata(self, dict_data: dict, index: int) -> None:
+    def get_data_from_dadata(self, dadata_request: list, dict_data: dict, index: int) -> None:
         """
-        Connect to dadata.
+
         """
-        dadata: DadataClient = DadataClient(self.token)
-        try:
-            dadata_request = dadata.find_by_id("party", dict_data["inn"])
-        except Exception as ex:
-            logger.error(f"Failed to connect to dadata {ex, type(ex), dict_data}")
-            print(f"dadata_connect_in_row_{index + 1}", file=sys.stderr)
-            sys.exit(1)
         if dadata_request:
             for company in dadata_request:
                 company_data: dict = company.get("data")
@@ -179,10 +172,24 @@ class ReferenceCompass(object):
                     try:
                         self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
                                                 company, dict_data)
-                    except Exception:
-                        logger.error(f"Error code: error processing in row {index + 1}! Data is {dict_data}")
+                    except Exception as ex_parse:
+                        logger.error(f"Error code: error processing in row {index + 1}! "
+                                     f"Error is {ex_parse} Data is {dict_data}")
                         print(f"in_row_{index + 1}", file=sys.stderr)
                         sys.exit(1)
+
+    def connect_to_dadata(self, dict_data: dict, index: int) -> None:
+        """
+        Connect to dadata.
+        """
+        dadata: DadataClient = DadataClient(self.token)
+        try:
+            dadata_request: list = dadata.find_by_id("party", dict_data["inn"])
+        except Exception as ex_con:
+            logger.error(f"Failed to connect to dadata {ex_con, type(ex_con), dict_data}")
+            print(f"dadata_connect_in_row_{index + 1}", file=sys.stderr)
+            sys.exit(1)
+        self.get_data_from_dadata(dadata_request, dict_data, index)
 
     def write_to_json(self, parsed_data: list) -> None:
         """
