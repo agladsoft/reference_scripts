@@ -102,14 +102,15 @@ class ReferenceMorService(object):
         """
         for current_line, next_line in self.pairwise(lines):
             for column, indexes in self.dict_columns_position.items():
+                if terminal_operator == 'ЗАО "АРКТИК-КОНСАЛТИНГ-СЕРВИС"':
+                    print()
                 parsed_record: dict = {
                     "direction": column,
                     "terminal_operator": terminal_operator,
                     "is_empty": current_line[1] == 'порожние',
                     "container_type": 'REF' if current_line[1] == 'из них реф.' else None,
                     "teu": self.parse_float(current_line[indexes[1]]) - self.parse_float(next_line[indexes[1]])
-                    if current_line[1] == 'груженые' and current_line[indexes[1]].isdigit()
-                       and next_line[indexes[1]].isdigit()
+                    if current_line[1] == 'груженые' and current_line[indexes[1]] and next_line[indexes[1]]
                     else self.parse_float(current_line[indexes[1]])
                 }
                 parsed_data.append(self.merge_two_dicts(context, parsed_record))
