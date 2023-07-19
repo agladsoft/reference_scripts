@@ -89,10 +89,10 @@ class ReferenceCompass(object):
     def change_data_in_db(self, parsed_data: list) -> None:
         client = self.connect_to_db()
         parsed_data_copy: list = parsed_data.copy()
-        with contextlib.suppress(ValueError):
-            for dict_data in parsed_data_copy:
-                for key, value in dict_data.items():
-                    if key in ["inn"]:
+        for dict_data in parsed_data_copy:
+            for key, value in dict_data.items():
+                if key in ["inn"]:
+                    try:
                         for row in client.query(f"SELECT * FROM reference_compass WHERE inn='{value}'").result_rows:
                             if len([x for x in row if x is not None]) < \
                                     len([x for x in dict_data.values() if x is not None]):
@@ -100,6 +100,10 @@ class ReferenceCompass(object):
                             else:
                                 parsed_data.pop(parsed_data.index(dict_data))
                         break
+                    except Exception as ex_db:
+                        logger.error(f"Failed to execute action. Error is {ex_db}. Type error is {type(ex_db)}. "
+                                     f"Data is {dict_data}")
+                        self.save_to_csv(dict_data)
 
     @staticmethod
     def leave_largest_data_with_dupl_inn(parsed_data: list) -> list:
