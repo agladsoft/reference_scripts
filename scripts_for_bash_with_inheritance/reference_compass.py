@@ -74,7 +74,7 @@ class ReferenceCompass(object):
         self.token = token
 
     @staticmethod
-    def change_data_in_db(parsed_data: list) -> None:
+    def connect_to_db():
         try:
             client: Client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'),
                                         username=os.getenv('USERNAME_DB'), password=os.getenv('PASSWORD'))
@@ -83,6 +83,11 @@ class ReferenceCompass(object):
             logger.error(f"Error connection to db {ex_connect}. Type error is {type(ex_connect)}.")
             print("error_connect_db", file=sys.stderr)
             sys.exit(1)
+
+        return client
+
+    def change_data_in_db(self, parsed_data: list) -> None:
+        client = self.connect_to_db()
         parsed_data_copy: list = parsed_data.copy()
         with contextlib.suppress(ValueError):
             for dict_data in parsed_data_copy:
