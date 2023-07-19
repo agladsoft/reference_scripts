@@ -74,7 +74,7 @@ class ReferenceCompass(object):
         self.token = token
 
     @staticmethod
-    def change_data_in_db(parsed_data: list) -> None:
+    def connect_to_db():
         try:
             client: Client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'),
                                         username=os.getenv('USERNAME_DB'), password=os.getenv('PASSWORD'))
@@ -83,6 +83,11 @@ class ReferenceCompass(object):
             logger.error(f"Error connection to db {ex_connect}. Type error is {type(ex_connect)}.")
             print("error_connect_db", file=sys.stderr)
             sys.exit(1)
+
+        return client
+
+    def change_data_in_db(self, parsed_data: list) -> None:
+        client = self.connect_to_db()
         parsed_data_copy: list = parsed_data.copy()
         with contextlib.suppress(ValueError):
             for dict_data in parsed_data_copy:
@@ -148,8 +153,8 @@ class ReferenceCompass(object):
         Add values from dadata to the dictionary.
         """
         dict_data["dadata_company_name"] = f'' \
-            f'{company_data.get("opf").get("short", "") if company_data.get("opf") else ""} ' \
-            f'{company_data["name"]["full"]}'.strip()
+                                           f'{company_data.get("opf").get("short", "") if company_data.get("opf") else ""} ' \
+                                           f'{company_data["name"]["full"]}'.strip()
         dict_data["dadata_address"] = company_address["unrestricted_value"] \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_address"]
         dict_data["dadata_region"] = company_address_data["region_with_type"] \
@@ -159,7 +164,8 @@ class ReferenceCompass(object):
         dict_data["dadata_city"] = company_address_data["city"] \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_city"]
         dict_data["dadata_okved_activity_main_type"] = company_data["okved"] \
-            if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_okved_activity_main_type"]
+            if company_data_branch == "MAIN" or not company_data_branch else dict_data[
+            "dadata_okved_activity_main_type"]
         dict_data["dadata_branch_name"] += f'{company["value"]}, КПП {company_data.get("kpp", "")}' + '\n' \
             if company_data_branch == "BRANCH" else ''
         dict_data["dadata_branch_address"] += company_address["unrestricted_value"] + '\n' \
@@ -179,7 +185,8 @@ class ReferenceCompass(object):
                 company_data_branch: dict = company_data.get("branch_type")
                 if company_data and company_address:
                     try:
-                        self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
+                        self.add_dadata_columns(company_data, company_address, company_address_data,
+                                                company_data_branch,
                                                 company, dict_data)
                     except Exception as ex_parse:
                         logger.error(f"Error code: error processing in row {index + 1}! "
@@ -194,7 +201,8 @@ class ReferenceCompass(object):
         try:
             dadata_request: Union[list, None] = dadata.find_by_id("party", dict_data["inn"])
         except httpx.ConnectError as ex_connect:
-            logger.error(f"Failed to connect dadata {ex_connect}. Type error is {type(ex_connect)}. Data is {dict_data}")
+            logger.error(
+                f"Failed to connect dadata {ex_connect}. Type error is {type(ex_connect)}. Data is {dict_data}")
             time.sleep(30)
             dadata_request = dadata.find_by_id("party", dict_data["inn"])
         except Exception as ex_all:
