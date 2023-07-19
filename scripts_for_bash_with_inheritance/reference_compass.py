@@ -205,7 +205,7 @@ class ReferenceCompass(object):
         """
         if rows := self.cur.execute(f'SELECT * FROM "{self.table_name}" ' f'WHERE inn=?',
                                     (dict_data["inn"],),).fetchall():
-            logger.info(f"Data getting from cache by inn {dict_data['inn']}")
+            logger.info(f"Data getting from cache by inn {dict_data['inn']}. Index is {index}")
             dict_dadata = dict(zip([c[0] for c in self.cur.description], rows[0]))
             dict_dadata.pop("inn")
             for key, value in dict_dadata.items():
