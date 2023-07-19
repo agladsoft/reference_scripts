@@ -2,7 +2,6 @@ import os
 import sys
 import json
 import time
-
 import httpx
 import warnings
 import app_logger
@@ -76,9 +75,14 @@ class ReferenceCompass(object):
 
     @staticmethod
     def change_data_in_db(parsed_data: list) -> None:
-        client: Client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'),
-                                    username=os.getenv('USERNAME_DB'), password=os.getenv('PASSWORD'))
-        client.query("SET allow_experimental_lightweight_delete=1")
+        try:
+            client: Client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'),
+                                        username=os.getenv('USERNAME_DB'), password=os.getenv('PASSWORD'))
+            client.query("SET allow_experimental_lightweight_delete=1")
+        except Exception as ex_connect:
+            logger.error(f"Error connection to db {ex_connect}. Type error is {type(ex_connect)}.")
+            print("error_connect_db", file=sys.stderr)
+            sys.exit(1)
         parsed_data_copy: list = parsed_data.copy()
         with contextlib.suppress(ValueError):
             for dict_data in parsed_data_copy:
