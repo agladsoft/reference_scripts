@@ -1,9 +1,14 @@
 import os
 import sys
 import json
+import time
+
+import httpx
 import warnings
 import app_logger
 import contextlib
+import pandas as pd
+from typing import Union
 from datetime import datetime
 from dotenv import load_dotenv
 from dadata.sync import DadataClient
@@ -158,9 +163,9 @@ class ReferenceCompass(object):
         dict_data["dadata_branch_region"] += company_address_data["region_with_type"] + '\n' \
             if company_data_branch == "BRANCH" else ''
 
-    def get_data_from_dadata(self, dadata_request: list, dict_data: dict, index: int) -> None:
+    def get_data_from_dadata(self, dadata_request: Union[list, None], dict_data: dict, index: int) -> None:
         """
-
+        Get data from dadata.
         """
         if dadata_request:
             for company in dadata_request:
@@ -175,8 +180,7 @@ class ReferenceCompass(object):
                     except Exception as ex_parse:
                         logger.error(f"Error code: error processing in row {index + 1}! "
                                      f"Error is {ex_parse} Data is {dict_data}")
-                        print(f"in_row_{index + 1}", file=sys.stderr)
-                        sys.exit(1)
+                        self.save_to_csv(dict_data)
 
     def connect_to_dadata(self, dict_data: dict, index: int) -> None:
         """
@@ -184,12 +188,23 @@ class ReferenceCompass(object):
         """
         dadata: DadataClient = DadataClient(self.token)
         try:
-            dadata_request: list = dadata.find_by_id("party", dict_data["inn"])
-        except Exception as ex_con:
-            logger.error(f"Failed to connect to dadata {ex_con, type(ex_con), dict_data}")
-            print(f"dadata_connect_in_row_{index + 1}", file=sys.stderr)
-            sys.exit(1)
+            dadata_request: Union[list, None] = dadata.find_by_id("party", dict_data["inn"])
+        except httpx.ConnectError as ex_connect:
+            logger.error(f"Failed to connect dadata {ex_connect}. Type error is {type(ex_connect)}. Data is {dict_data}")
+            time.sleep(30)
+            dadata_request = dadata.find_by_id("party", dict_data["inn"])
+        except Exception as ex_all:
+            logger.error(f"Unknown error in dadata {ex_all}. Type error is {type(ex_all)}. Data is {dict_data}")
+            dadata_request = None
+            self.save_to_csv(dict_data)
         self.get_data_from_dadata(dadata_request, dict_data, index)
+
+    def save_to_csv(self, dict_data: dict) -> None:
+        df: pd.DataFrame = pd.DataFrame([dict_data])
+        index_of_column: int = df.columns.get_loc('original_file_name')
+        columns_slice: pd.DataFrame = df.iloc[:, :index_of_column]
+        with open(f"{os.path.dirname(self.input_file_path)}/completed_with_error_data.csv", 'a') as f:
+            columns_slice.to_csv(f, header=f.tell() == 0, index=False)
 
     def write_to_json(self, parsed_data: list) -> None:
         """
