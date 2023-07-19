@@ -3,11 +3,13 @@ import sys
 import json
 import time
 import httpx
+import sqlite3
 import warnings
 import app_logger
 import contextlib
 import pandas as pd
 from typing import Union
+from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 from dadata.sync import DadataClient
@@ -67,26 +69,100 @@ headers_eng: dict = {
 }
 
 
+def get_my_env_var(var_name: str) -> str:
+    try:
+        return os.environ[var_name]
+    except KeyError as e:
+        raise MissingEnvironmentVariable(f"{var_name} does not exist") from e
+
+
+class MissingEnvironmentVariable(Exception):
+    pass
+
+
 class ReferenceCompass(object):
-    def __init__(self, input_file_path: str, output_folder: str, token):
+    def __init__(self, input_file_path: str, output_folder: str, token: str):
+        self.token: str = token
+        self.table_name: str = "cache_dadata"
         self.input_file_path: str = input_file_path
         self.output_folder: str = output_folder
-        self.token = token
+        self.conn: sqlite3.Connection = self.create_file_for_cache()
+        self.cur: sqlite3.Cursor = self.load_cache()
 
     @staticmethod
-    def connect_to_db():
+    def create_file_for_cache() -> sqlite3.Connection:
+        """
+        Creating a file for recording Dadata caches and sentence.
+        """
+        path_cache: str = f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/cache_dadata/cache_dadata.db"
+        fle: Path = Path(path_cache)
+        if not os.path.exists(os.path.dirname(fle)):
+            os.makedirs(os.path.dirname(fle))
+        fle.touch(exist_ok=True)
+        return sqlite3.connect(path_cache)
+
+    def load_cache(self) -> sqlite3.Cursor:
+        """
+        Loading the cache.
+        """
+        cur: sqlite3.Cursor = self.conn.cursor()
+        cur.execute(f"""CREATE TABLE IF NOT EXISTS {self.table_name}(
+            inn TEXT PRIMARY KEY, 
+            dadata_company_name TEXT,
+            dadata_address TEXT,
+            dadata_region TEXT,
+            dadata_federal_district TEXT,
+            dadata_city TEXT,
+            dadata_okved_activity_main_type TEXT,
+            dadata_branch_name TEXT,
+            dadata_branch_address TEXT,
+            dadata_branch_region TEXT)
+        """)
+        self.conn.commit()
+        logger.info(f"Cache table {self.table_name} is created")
+        return cur
+
+    def cache_add_and_save(self, dict_data: dict) -> None:
+        """
+        Saving and adding the result to the cache.
+        """
+        self.cur.executemany(f"INSERT or IGNORE INTO {self.table_name} "
+                             f"VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+            (
+                dict_data["inn"],
+                dict_data["dadata_company_name"],
+                dict_data["dadata_address"],
+                dict_data["dadata_region"],
+                dict_data["dadata_federal_district"],
+                dict_data["dadata_city"],
+                dict_data["dadata_okved_activity_main_type"],
+                dict_data["dadata_branch_name"],
+                dict_data["dadata_branch_address"],
+                dict_data["dadata_branch_region"],
+             )
+        ])
+        self.conn.commit()
+        logger.info(f"Data inserted to cache by inn {dict_data['inn']}")
+
+    @staticmethod
+    def connect_to_db() -> Client:
+        """
+        Connecting to clickhouse.
+        """
         try:
-            client: Client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'),
-                                        username=os.getenv('USERNAME_DB'), password=os.getenv('PASSWORD'))
+            client: Client = get_client(host=get_my_env_var('HOST'), database=get_my_env_var('DATABASE'),
+                                        username=get_my_env_var('USERNAME_DB'), password=get_my_env_var('PASSWORD'))
             client.query("SET allow_experimental_lightweight_delete=1")
         except Exception as ex_connect:
             logger.error(f"Error connection to db {ex_connect}. Type error is {type(ex_connect)}.")
             print("error_connect_db", file=sys.stderr)
             sys.exit(1)
-
         return client
 
     def change_data_in_db(self, parsed_data: list) -> None:
+        """
+        Delete the data from the database if the row is loaded now.
+        """
         client = self.connect_to_db()
         parsed_data_copy: list = parsed_data.copy()
         for dict_data in parsed_data_copy:
@@ -123,7 +199,26 @@ class ReferenceCompass(object):
                 uniq_parsed_parsed_data.append(d)
         return uniq_parsed_parsed_data
 
-    def change_type_and_values(self, parsed_data: list) -> None:
+    def get_data_from_cache(self, dict_data: dict, index: int):
+        """
+        Get data from the cache in order not to go to dadata again, because the limit is 10000 requests per day.
+        """
+        if rows := self.cur.execute(f'SELECT * FROM "{self.table_name}" ' f'WHERE inn=?',
+                                    (dict_data["inn"],),).fetchall():
+            logger.info(f"Data getting from cache by inn {dict_data['inn']}")
+            dict_dadata = dict(zip([c[0] for c in self.cur.description], rows[0]))
+            dict_dadata.pop("inn")
+            for key, value in dict_dadata.items():
+                dict_data[key] = value
+        else:
+            self.connect_to_dadata(dict_data, index)
+        if not dict_data["dadata_branch_name"] \
+                and not dict_data["dadata_branch_address"] and not dict_data["dadata_branch_region"]:
+            dict_data["dadata_branch_name"] = None
+            dict_data["dadata_branch_address"] = None
+            dict_data["dadata_branch_region"] = None
+
+    def handle_raw_data(self, parsed_data: list) -> None:
         """
         Change data types or changing values.
         """
@@ -133,12 +228,7 @@ class ReferenceCompass(object):
                     if key in ["registration_date"]:
                         dict_data[key] = str(value.date())
             self.add_new_columns(dict_data)
-            self.connect_to_dadata(dict_data, index)
-            if not dict_data["dadata_branch_name"] and not dict_data["dadata_branch_address"] \
-                    and not dict_data["dadata_branch_region"]:
-                dict_data["dadata_branch_name"] = None
-                dict_data["dadata_branch_address"] = None
-                dict_data["dadata_branch_region"] = None
+            self.get_data_from_cache(dict_data, index)
 
     def add_new_columns(self, dict_data: dict) -> None:
         """
@@ -156,9 +246,9 @@ class ReferenceCompass(object):
         """
         Add values from dadata to the dictionary.
         """
-        dict_data["dadata_company_name"] = f'' \
-                                           f'{company_data.get("opf").get("short", "") if company_data.get("opf") else ""} ' \
-                                           f'{company_data["name"]["full"]}'.strip()
+        dict_data["dadata_company_name"] = \
+            f'{company_data.get("opf").get("short", "") if company_data.get("opf") else ""} ' \
+            f'{company_data["name"]["full"]}'.strip()
         dict_data["dadata_address"] = company_address["unrestricted_value"] \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_address"]
         dict_data["dadata_region"] = company_address_data["region_with_type"] \
@@ -176,25 +266,24 @@ class ReferenceCompass(object):
         dict_data["dadata_branch_region"] += company_address_data["region_with_type"] + '\n' \
             if company_data_branch == "BRANCH" else ''
 
-    def get_data_from_dadata(self, dadata_request: Union[list, None], dict_data: dict, index: int) -> None:
+    def get_data_from_dadata(self, dadata_request: list, dict_data: dict, index: int) -> None:
         """
         Get data from dadata.
         """
-        if dadata_request:
-            for company in dadata_request:
+        for company in dadata_request:
+            try:
                 company_data: dict = company.get("data")
                 company_address: dict = company_data.get("address")
                 company_address_data: dict = company_address.get("data", {})
                 company_data_branch: dict = company_data.get("branch_type")
                 if company_data and company_address:
-                    try:
-                        self.add_dadata_columns(company_data, company_address, company_address_data,
-                                                company_data_branch,
-                                                company, dict_data)
-                    except Exception as ex_parse:
-                        logger.error(f"Error code: error processing in row {index + 1}! "
-                                     f"Error is {ex_parse} Data is {dict_data}")
-                        self.save_to_csv(dict_data)
+                    self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
+                                            company, dict_data)
+                    self.cache_add_and_save(dict_data)
+            except Exception as ex_parse:
+                logger.error(f"Error code: error processing in row {index + 1}! "
+                             f"Error is {ex_parse} Data is {dict_data}")
+                self.save_to_csv(dict_data)
 
     def connect_to_dadata(self, dict_data: dict, index: int) -> None:
         """
@@ -212,7 +301,8 @@ class ReferenceCompass(object):
             logger.error(f"Unknown error in dadata {ex_all}. Type error is {type(ex_all)}. Data is {dict_data}")
             dadata_request = None
             self.save_to_csv(dict_data)
-        self.get_data_from_dadata(dadata_request, dict_data, index)
+        if dadata_request:
+            self.get_data_from_dadata(dadata_request, dict_data, index)
 
     def save_to_csv(self, dict_data: dict) -> None:
         df: pd.DataFrame = pd.DataFrame([dict_data])
@@ -261,6 +351,19 @@ class ReferenceCompass(object):
                             sys.exit(1)
                         dict_columns[value[1]] = cell.value
 
+    def parse_xlsx(self, ws: Worksheet, parsed_data: list) -> None:
+        """
+        Xlsx file parsing.
+        """
+        dict_header: dict = {}
+        for i, column in enumerate(ws):
+            dict_columns: dict = {}
+            if i == 0:
+                self.get_column_eng(column, dict_header)
+                continue
+            self.get_value_from_cell(i, column, dict_header, dict_columns)
+            parsed_data.append(dict_columns)
+
     def main(self) -> None:
         """
         The main function where we read the Excel file and write the file to json.
@@ -271,15 +374,8 @@ class ReferenceCompass(object):
             wb: Workbook = load_workbook(self.input_file_path)
             ws: Worksheet = wb[wb.sheetnames[0]]
             parsed_data: list = []
-            dict_header: dict = {}
-            for i, column in enumerate(ws):
-                dict_columns: dict = {}
-                if i == 0:
-                    self.get_column_eng(column, dict_header)
-                    continue
-                self.get_value_from_cell(i, column, dict_header, dict_columns)
-                parsed_data.append(dict_columns)
-            self.change_type_and_values(parsed_data)
+            self.parse_xlsx(ws, parsed_data)
+            self.handle_raw_data(parsed_data)
             parsed_data: list = self.leave_largest_data_with_dupl_inn(parsed_data)
             self.change_data_in_db(parsed_data)
             self.write_to_json(parsed_data)
