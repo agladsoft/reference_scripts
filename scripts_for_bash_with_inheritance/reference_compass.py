@@ -89,10 +89,10 @@ class ReferenceCompass(object):
     def change_data_in_db(self, parsed_data: list) -> None:
         client = self.connect_to_db()
         parsed_data_copy: list = parsed_data.copy()
-        with contextlib.suppress(ValueError):
-            for dict_data in parsed_data_copy:
-                for key, value in dict_data.items():
-                    if key in ["inn"]:
+        for dict_data in parsed_data_copy:
+            for key, value in dict_data.items():
+                if key in ["inn"]:
+                    try:
                         for row in client.query(f"SELECT * FROM reference_compass WHERE inn='{value}'").result_rows:
                             if len([x for x in row if x is not None]) < \
                                     len([x for x in dict_data.values() if x is not None]):
@@ -100,6 +100,10 @@ class ReferenceCompass(object):
                             else:
                                 parsed_data.pop(parsed_data.index(dict_data))
                         break
+                    except Exception as ex_db:
+                        logger.error(f"Failed to execute action. Error is {ex_db}. Type error is {type(ex_db)}. "
+                                     f"Data is {dict_data}")
+                        self.save_to_csv(dict_data)
 
     @staticmethod
     def leave_largest_data_with_dupl_inn(parsed_data: list) -> list:
@@ -153,8 +157,8 @@ class ReferenceCompass(object):
         Add values from dadata to the dictionary.
         """
         dict_data["dadata_company_name"] = f'' \
-            f'{company_data.get("opf").get("short", "") if company_data.get("opf") else ""} ' \
-            f'{company_data["name"]["full"]}'.strip()
+                                           f'{company_data.get("opf").get("short", "") if company_data.get("opf") else ""} ' \
+                                           f'{company_data["name"]["full"]}'.strip()
         dict_data["dadata_address"] = company_address["unrestricted_value"] \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_address"]
         dict_data["dadata_region"] = company_address_data["region_with_type"] \
@@ -184,7 +188,8 @@ class ReferenceCompass(object):
                 company_data_branch: dict = company_data.get("branch_type")
                 if company_data and company_address:
                     try:
-                        self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
+                        self.add_dadata_columns(company_data, company_address, company_address_data,
+                                                company_data_branch,
                                                 company, dict_data)
                     except Exception as ex_parse:
                         logger.error(f"Error code: error processing in row {index + 1}! "
@@ -199,7 +204,8 @@ class ReferenceCompass(object):
         try:
             dadata_request: Union[list, None] = dadata.find_by_id("party", dict_data["inn"])
         except httpx.ConnectError as ex_connect:
-            logger.error(f"Failed to connect dadata {ex_connect}. Type error is {type(ex_connect)}. Data is {dict_data}")
+            logger.error(
+                f"Failed to connect dadata {ex_connect}. Type error is {type(ex_connect)}. Data is {dict_data}")
             time.sleep(30)
             dadata_request = dadata.find_by_id("party", dict_data["inn"])
         except Exception as ex_all:
