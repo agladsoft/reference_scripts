@@ -22,7 +22,7 @@ load_dotenv()
 
 list_join_columns: list = ["telephone_number", "email"]
 
-logger: app_logger = app_logger.get_logger(os.path.basename(__file__).replace(".py", ""))
+logger: app_logger = app_logger.get_logger(os.path.basename(__file__).replace(".py", "_") + str(datetime.now().date()))
 
 headers_eng: dict = {
     ("ИНН",): "inn",
