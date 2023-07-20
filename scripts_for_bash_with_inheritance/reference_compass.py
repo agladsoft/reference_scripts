@@ -388,5 +388,6 @@ if __name__ == "__main__":
     try:
         reference_compass.main()
     except Exception as ex:
+        logger.error(f"Error code: unknown error - {ex}!")
         print("unknown_error", file=sys.stderr)
         sys.exit(1)
