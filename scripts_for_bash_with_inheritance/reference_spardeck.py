@@ -29,7 +29,7 @@ HEADERS_ENG: dict = {
 DATE_FORMATS: list = ["%Y-%m-%d %H:%M:%S", "%d.%m.%Y %H:%M", "%d.%m.%y %H:%M"]
 
 
-class ReportNle(object):
+class ReferenceSparDeck(object):
     def __init__(self, input_file_path: str, output_folder: str):
         self.input_file_path: str = input_file_path
         self.output_folder: str = output_folder
@@ -81,5 +81,5 @@ class ReportNle(object):
         self.write_to_json(df.to_dict('records'))
 
 
-report_nle: ReportNle = ReportNle(sys.argv[1], sys.argv[2])
-report_nle.main()
+reference_spardeck: ReferenceSparDeck = ReferenceSparDeck(sys.argv[1], sys.argv[2])
+reference_spardeck.main()

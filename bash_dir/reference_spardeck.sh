@@ -1,6 +1,6 @@
 #!/bin/bash
 
-xls_path="${XL_IDP_PATH_REFERENCE}/reference_report_nle/"
+xls_path="${XL_IDP_PATH_REFERENCE}/reference_spardeck/"
 
 csv_path="${xls_path}"/csv
 if [ ! -d "$csv_path" ]; then
@@ -53,7 +53,7 @@ do
 	fi
 
 	# Will convert csv to json
-	python3 ${XL_IDP_PATH_REFERENCE_SCRIPTS}/scripts_for_bash_with_inheritance/reference_report_nle.py "${csv_name}" "${json_path}"
+	python3 ${XL_IDP_PATH_REFERENCE_SCRIPTS}/scripts_for_bash_with_inheritance/reference_spardeck.py "${csv_name}" "${json_path}"
 
   if [ $? -eq 0 ]
 	then
