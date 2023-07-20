@@ -36,7 +36,7 @@ do
     do
       if [[ ${exit_code} == "${error_code}" ]]
       then
-        mv "${file}" "${xls_path}/error_code_${exit_code}_$(basename "${file}")"
+        mv "${file}" "${xls_path}/error_code_${exit_message}_$(basename "${file}")"
       fi
     done
 	fi
