@@ -164,5 +164,5 @@ class ReferenceMorService(object):
         self.write_to_json(parsed_data)
 
 
-reference_compass: ReferenceMorService = ReferenceMorService(sys.argv[1], sys.argv[2])
-reference_compass.main()
+reference_morservice_all: ReferenceMorService = ReferenceMorService(sys.argv[1], sys.argv[2])
+reference_morservice_all.main()
