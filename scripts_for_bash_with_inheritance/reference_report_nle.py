@@ -4,6 +4,7 @@ import json
 import contextlib
 import numpy as np
 import pandas as pd
+from typing import Union
 from pandas import DataFrame
 from datetime import datetime
 
@@ -15,7 +16,7 @@ HEADERS_ENG: dict = {
     "ATA": "ata_enter_zone",
     "ATB": "atb_moor_pier",
     "ATD": "atd_move_pier",
-    "POL (прибыл из)": "pol_arrive",
+    "POL": "pol_arrive",
     "Next POD": "next_left",
     "total volume IN": "total_volume_in",
     "total volume OUT": "total_volume_out",
@@ -34,7 +35,7 @@ class ReportNle(object):
         self.output_folder: str = output_folder
 
     @staticmethod
-    def parse(date):
+    def parse(date: Union[str, None]):
         if isinstance(date, str):
             for fmt in DATE_FORMATS:
                 with contextlib.suppress(ValueError):
