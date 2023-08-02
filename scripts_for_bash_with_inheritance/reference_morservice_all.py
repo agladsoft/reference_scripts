@@ -4,6 +4,7 @@ import csv
 import json
 import math
 from itertools import tee
+from datetime import datetime
 from __init__ import LIST_MONTHS
 from typing import Dict, Union, Tuple
 
@@ -108,8 +109,10 @@ class ReferenceMorService(object):
                     "is_empty": current_line[1] == 'порожние',
                     "container_type": 'REF' if current_line[1] == 'из них реф.' else None,
                     "teu": self.parse_float(current_line[indexes[1]]) - self.parse_float(next_line[indexes[1]])
-                    if current_line[1] == 'груженые' and current_line[indexes[1]] and next_line[indexes[1]]
-                    else self.parse_float(current_line[indexes[1]])
+                        if current_line[1] == 'груженые' and current_line[indexes[1]] and next_line[indexes[1]]
+                        else self.parse_float(current_line[indexes[1]]),
+                    "original_file_name": os.path.basename(self.input_file_path),
+                    "original_file_parsed_on": str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 }
                 parsed_data.append(self.merge_two_dicts(context, parsed_record))
 
