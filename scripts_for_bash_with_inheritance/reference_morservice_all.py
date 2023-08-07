@@ -135,9 +135,14 @@ class ReferenceMorService(object):
                     context["bay"] = data
                 elif "Порт" in data and "Итого" not in data:
                     context["port"] = data
-                elif "тыс.тонн" in data and "Итого \n" + context["port"] not in line:
+                elif "тыс.тонн" in data:
                     self._get_data_from_direction(line[0], lines[i + 2:i + 6], context, parsed_data)
         return parsed_data
+
+    @staticmethod
+    def remove_extra_lines(parsed_data: list) -> list:
+        return [line for line in parsed_data if "Итого" not in line["terminal_operator"]]
+
 
     def write_to_json(self, parsed_data: list) -> None:
         """
@@ -164,6 +169,7 @@ class ReferenceMorService(object):
         """
         lines: list = self.read_csv()
         parsed_data: list = self.parse_data(lines)
+        parsed_data = self.remove_extra_lines(parsed_data)
         self.write_to_json(parsed_data)
 
 
