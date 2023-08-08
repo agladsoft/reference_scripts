@@ -26,12 +26,13 @@ def merge_two_dicts(x, y):
 class ReferenceImportTracking(object):
 
     @staticmethod
-    def get_field_from_db(seaport, country, client):
+    def get_field_from_db(seaport, country, client, index):
         try:
             query = client.query(f"SELECT * FROM reference_region WHERE seaport='{seaport}' AND country='{country}'").result_rows
             return query
         except Exception as ex:
-            logging.error(f"Error getting data from database. Data is {seaport} and {country} Exception is {ex}")
+            logging.error(f"Error getting data from database. Index is {index}. Data is {seaport} and {country}. "
+                          f"Exception is {ex}")
             print("9", file=sys.stderr)
             sys.exit(9)
 
@@ -52,7 +53,7 @@ class ReferenceImportTracking(object):
             sys.exit(8)
         for index, line in enumerate(lines):
             new_line = {k: v.strip() for k, v in line.items() if k in fileds_to_get}
-            if self.get_field_from_db(new_line["tracking_seaport"], new_line["tracking_country"], client):
+            if self.get_field_from_db(new_line["tracking_seaport"], new_line["tracking_country"], client, index):
                 data.append(new_line)
             else:
                 client.close()
