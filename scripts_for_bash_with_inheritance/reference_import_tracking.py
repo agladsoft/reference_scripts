@@ -26,7 +26,7 @@ def merge_two_dicts(x, y):
 class ReferenceImportTracking(object):
 
     @staticmethod
-    def escape_quotes(data: str, sign: str = "'"):
+    def escape_quotes(data: str, sign: str = "'") -> str:
         return data.replace(f"{sign}", "''") if data.find(f"{sign}") > 0 else data
 
     def get_field_from_db(self, seaport, country, client, index):
