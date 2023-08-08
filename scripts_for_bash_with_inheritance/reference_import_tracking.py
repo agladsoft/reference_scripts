@@ -31,7 +31,7 @@ class ReferenceImportTracking(object):
             query = client.query(f"SELECT * FROM reference_region WHERE seaport='{seaport}' AND country='{country}'").result_rows
             return query
         except Exception as ex:
-            logging.error(f"Error getting data from database. Exception is {ex}")
+            logging.error(f"Error getting data from database. Data is {seaport} and {country} Exception is {ex}")
             print("9", file=sys.stderr)
             sys.exit(9)
 
