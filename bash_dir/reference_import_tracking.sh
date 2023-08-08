@@ -1,7 +1,6 @@
 #!/bin/bash
 
 xls_path="${XL_IDP_PATH_REFERENCE}/reference_import_tracking/"
-#xls_path="/home/timur/Anton_project/import_xls-master/reference_import_tracking/"
 
 
 csv_path="${xls_path}"/csv
@@ -63,7 +62,7 @@ do
 	then
 	  mv "${csv_name}" "${done_path}"
 	else
-    for error_code in {1..7}
+    for error_code in {1..9}
     do
       if [[ ${exit_code} == "${error_code}" ]]
       then
