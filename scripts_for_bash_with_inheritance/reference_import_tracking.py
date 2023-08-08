@@ -26,9 +26,13 @@ def merge_two_dicts(x, y):
 class ReferenceImportTracking(object):
 
     @staticmethod
-    def get_field_from_db(seaport, country, client, index):
+    def escape_quotes(data: str, sign: str = "'"):
+        return data.replace(f"{sign}", "''") if data.find(f"{sign}") > 0 else data
+
+    def get_field_from_db(self, seaport, country, client, index):
         try:
-            query = client.query(f"SELECT * FROM reference_region WHERE seaport='{seaport}' AND country='{country}'").result_rows
+            query = client.query(f"SELECT * FROM reference_region WHERE seaport='{self.escape_quotes(seaport)}' "
+                                 f"AND country='{self.escape_quotes(country)}'").result_rows
             return query
         except Exception as ex:
             logging.error(f"Error getting data from database. Index is {index}. Data is {seaport} and {country}. "
