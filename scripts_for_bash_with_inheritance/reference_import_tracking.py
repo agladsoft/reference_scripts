@@ -9,10 +9,11 @@ from clickhouse_connect import get_client
 
 load_dotenv()
 
-if not os.path.exists("logging"):
-    os.mkdir("logging")
+log_dir_name: str = f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging"
+if not os.path.exists(log_dir_name):
+    os.mkdir(log_dir_name)
 
-logging.basicConfig(filename=f"logging/{os.path.basename(__file__)}.log", level=logging.DEBUG)
+logging.basicConfig(filename=f"{log_dir_name}/{os.path.basename(__file__)}.log", level=logging.DEBUG)
 log = logging.getLogger()
 
 
@@ -25,9 +26,19 @@ def merge_two_dicts(x, y):
 class ReferenceImportTracking(object):
 
     @staticmethod
-    def get_field_from_db(seaport, country, client):
-        query = client.query(f"SELECT * FROM reference_region WHERE seaport='{seaport}' AND country='{country}'").result_rows
-        return query
+    def escape_quotes(data: str, sign: str = "'") -> str:
+        return data.replace(f"{sign}", "''") if data.find(f"{sign}") > 0 else data
+
+    def get_field_from_db(self, seaport, country, client, index):
+        try:
+            query = client.query(f"SELECT * FROM reference_region WHERE seaport='{self.escape_quotes(seaport)}' "
+                                 f"AND country='{self.escape_quotes(country)}'").result_rows
+            return query
+        except Exception as ex:
+            logging.error(f"Error getting data from database. Index is {index}. Data is {seaport} and {country}. "
+                          f"Exception is {ex}")
+            print("9", file=sys.stderr)
+            sys.exit(9)
 
     def process(self, file_path):
         logging.info(f'file is {os.path.basename(file_path)} {datetime.datetime.now()}')
@@ -37,11 +48,16 @@ class ReferenceImportTracking(object):
         logging.info(f'First 3 items are: {lines[:3]}')
         fileds_to_get = ['import_id', 'tracking_seaport', 'tracking_country']
         data = []
-        client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'), username=os.getenv('USERNAME_DB'),
-                            password=os.getenv('PASSWORD'))
+        try:
+            client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'), username=os.getenv('USERNAME_DB'),
+                                password=os.getenv('PASSWORD'))
+        except Exception as ex:
+            logging.error(f"Error connection to database. Exception is {ex}")
+            print("8", file=sys.stderr)
+            sys.exit(8)
         for index, line in enumerate(lines):
             new_line = {k: v.strip() for k, v in line.items() if k in fileds_to_get}
-            if self.get_field_from_db(new_line["tracking_seaport"], new_line["tracking_country"], client):
+            if self.get_field_from_db(new_line["tracking_seaport"], new_line["tracking_country"], client, index):
                 data.append(new_line)
             else:
                 client.close()

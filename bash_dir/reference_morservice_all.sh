@@ -1,7 +1,6 @@
 #!/bin/bash
 
-xls_path="${XL_IDP_PATH_REFERENCE}/reference_import_tracking/"
-
+xls_path="${XL_IDP_PATH_REFERENCE}/reference_morservice_all/"
 
 csv_path="${xls_path}"/csv
 if [ ! -d "$csv_path" ]; then
@@ -54,20 +53,12 @@ do
 	fi
 
 	# Will convert csv to json
-	exit_message=$(python3 ${XL_IDP_PATH_REFERENCE_SCRIPTS}/scripts_for_bash_with_inheritance/reference_import_tracking.py "${csv_name}" "${json_path}" 2>&1 > /dev/null)
+	python3 ${XL_IDP_PATH_REFERENCE_SCRIPTS}/scripts_for_bash_with_inheritance/reference_morservice_all.py "${csv_name}" "${json_path}"
 
-  exit_code=$?
-  echo "Exit code ${exit_code}"
-  if [[ ${exit_code} == 0 ]]
+  if [ $? -eq 0 ]
 	then
 	  mv "${csv_name}" "${done_path}"
 	else
-    for error_code in {1..9}
-    do
-      if [[ ${exit_code} == "${error_code}" ]]
-      then
-        mv "${csv_name}" "${xls_path}/error_code_${exit_message}_$(basename "${csv_name}")"
-      fi
-    done
+	  mv "${csv_name}" "${xls_path}/error_$(basename "${csv_name}")"
 	fi
 done

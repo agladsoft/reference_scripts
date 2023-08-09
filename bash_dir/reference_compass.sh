@@ -24,13 +24,21 @@ do
   echo "'${file} - ${mime_type}'"
 
 	# Will convert csv to json
-	python3 ${XL_IDP_PATH_REFERENCE_SCRIPTS}/scripts_for_bash_with_inheritance/reference_compass.py "${file}" "${json_path}"
+	exit_message=$(python3 ${XL_IDP_PATH_REFERENCE_SCRIPTS}/scripts_for_bash_with_inheritance/reference_compass.py "${file}" "${json_path}" 2>&1 > /dev/null)
 
-  if [ $? -eq 0 ]
+  exit_code=$?
+  echo "Exit code ${exit_code}"
+  if [[ ${exit_code} == 0 ]]
 	then
 	  mv "${file}" "${done_path}"
 	else
-	  mv "${file}" "${xls_path}/error_$(basename "${file}")"
+    for error_code in {1..2}
+    do
+      if [[ ${exit_code} == "${error_code}" ]]
+      then
+        mv "${file}" "${xls_path}/error_code_${exit_message}_$(basename "${file}")"
+      fi
+    done
 	fi
 
 done
