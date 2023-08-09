@@ -9,3 +9,5 @@ ${XL_IDP_PATH_REFERENCE_SCRIPTS}/bash_dir/reference_is_empty.sh
 ${XL_IDP_PATH_REFERENCE_SCRIPTS}/bash_dir/reference_inn.sh
 ${XL_IDP_PATH_REFERENCE_SCRIPTS}/bash_dir/reference_tnved2.sh
 ${XL_IDP_PATH_REFERENCE_SCRIPTS}/bash_dir/reference_compass.sh
+${XL_IDP_PATH_REFERENCE_SCRIPTS}/bash_dir/reference_morservice_all.sh
+${XL_IDP_PATH_REFERENCE_SCRIPTS}/bash_dir/reference_spardeck.sh
