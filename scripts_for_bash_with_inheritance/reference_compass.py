@@ -88,6 +88,41 @@ class ReferenceCompass(object):
         self.output_folder: str = output_folder
         self.conn: sqlite3.Connection = self.create_file_for_cache()
         self.cur: sqlite3.Cursor = self.load_cache()
+        self.conn_dadata: sqlite3.Connection = self.create_file_for_cache_dadata()
+        self.cur_dadata: sqlite3.Cursor = self.load_cache_dadata()
+
+    @staticmethod
+    def create_file_for_cache_dadata():
+        """
+        Creating a file for recording Dadata caches and sentence.
+        """
+        path_cache: str = "/home/ruscon/all_data_of_dadata.db"
+        fle: Path = Path(path_cache)
+        if not os.path.exists(os.path.dirname(fle)):
+            os.makedirs(os.path.dirname(fle))
+        fle.touch(exist_ok=True)
+        return sqlite3.connect(path_cache)
+
+    def load_cache_dadata(self) -> sqlite3.Cursor:
+        """
+        Loading the cache.
+        """
+        cur: sqlite3.Cursor = self.conn_dadata.cursor()
+        cur.execute(f"""CREATE TABLE IF NOT EXISTS {self.table_name}(
+            inn TEXT PRIMARY KEY, 
+            dadata_data TEXT)
+        """)
+        self.conn_dadata.commit()
+        logger.info(f"Cache table {self.table_name} is created")
+        return cur
+
+    def cache_add_and_save_dadata(self, api_inn: str, dadata_data: str) -> None:
+        """
+        Saving and adding the result to the cache.
+        """
+        self.cur_dadata.executemany(f"INSERT or IGNORE INTO {self.table_name} VALUES(?, ?)", [(api_inn, dadata_data)])
+        self.conn_dadata.commit()
+        logger.info(f"Data inserted to cache by inn {api_inn}")
 
     @staticmethod
     def create_file_for_cache() -> sqlite3.Connection:
@@ -298,6 +333,7 @@ class ReferenceCompass(object):
             dadata_request = None
             self.save_to_csv(dict_data)
         if dadata_request:
+            self.cache_add_and_save_dadata(dict_data['inn'], str(dadata_request))
             self.get_data_from_dadata(dadata_request, dict_data, index)
 
     def save_to_csv(self, dict_data: dict) -> None:
@@ -380,7 +416,7 @@ class ReferenceCompass(object):
 
 if __name__ == "__main__":
     reference_compass: ReferenceCompass = ReferenceCompass(sys.argv[1], sys.argv[2],
-                                                           "baf71b4b95c986ce9148c24f5aa251d94cd9d850")
+                                                           "3321a7103852f488c92dbbd926b2e554ad63fb49")
     try:
         reference_compass.main()
     except Exception as ex:
