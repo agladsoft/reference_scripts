@@ -131,9 +131,9 @@ class ReferenceMorService(object):
                     self._get_date_from_header(data, context)
                 elif "Бассейн" in data and "Порт" in data:
                     self._get_direction_indexes(lines[i:i + 2], context)
-                elif "бассейн" in data:
+                elif "бассейн" in data.lower() and len(list(filter(None, line))) == 1:
                     context["bay"] = data
-                elif "Порт" in data and "Итого" not in data:
+                elif "порт" in data.lower() and "итого" not in data.lower() and len(list(filter(None, line))) == 1:
                     context["port"] = data
                 elif "тыс.тонн" in data:
                     self._get_data_from_direction(line[0], lines[i + 2:i + 6], context, parsed_data)
