@@ -1,18 +1,13 @@
 import os
 import sys
 import json
-import time
-import httpx
-import sqlite3
 import warnings
+import requests
 import app_logger
 import contextlib
 import pandas as pd
-from typing import Union
-from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
-from dadata.sync import DadataClient
 from clickhouse_connect import get_client
 from clickhouse_connect.driver import Client
 from openpyxl import Workbook, load_workbook
@@ -81,103 +76,10 @@ class MissingEnvironmentVariable(Exception):
 
 
 class ReferenceCompass(object):
-    def __init__(self, input_file_path: str, output_folder: str, token: str):
-        self.token: str = token
+    def __init__(self, input_file_path: str, output_folder: str):
         self.table_name: str = "cache_dadata"
         self.input_file_path: str = input_file_path
         self.output_folder: str = output_folder
-        self.conn: sqlite3.Connection = self.create_file_for_cache()
-        self.cur: sqlite3.Cursor = self.load_cache()
-        self.conn_dadata: sqlite3.Connection = self.create_file_for_cache_dadata()
-        self.cur_dadata: sqlite3.Cursor = self.load_cache_dadata()
-
-    @staticmethod
-    def create_file_for_cache_dadata():
-        """
-        Creating a file for recording Dadata caches and sentence.
-        """
-        path_cache: str = "/home/ruscon/all_data_of_dadata.db"
-        fle: Path = Path(path_cache)
-        if not os.path.exists(os.path.dirname(fle)):
-            os.makedirs(os.path.dirname(fle))
-        fle.touch(exist_ok=True)
-        return sqlite3.connect(path_cache)
-
-    def load_cache_dadata(self) -> sqlite3.Cursor:
-        """
-        Loading the cache.
-        """
-        cur: sqlite3.Cursor = self.conn_dadata.cursor()
-        cur.execute(f"""CREATE TABLE IF NOT EXISTS {self.table_name}(
-            inn TEXT PRIMARY KEY, 
-            dadata_data TEXT)
-        """)
-        self.conn_dadata.commit()
-        logger.info(f"Cache table {self.table_name} is created")
-        return cur
-
-    def cache_add_and_save_dadata(self, api_inn: str, dadata_data: str) -> None:
-        """
-        Saving and adding the result to the cache.
-        """
-        self.cur_dadata.executemany(f"INSERT or IGNORE INTO {self.table_name} VALUES(?, ?)", [(api_inn, dadata_data)])
-        self.conn_dadata.commit()
-        logger.info(f"Data inserted to cache by inn {api_inn}")
-
-    @staticmethod
-    def create_file_for_cache() -> sqlite3.Connection:
-        """
-        Creating a file for recording Dadata caches and sentence.
-        """
-        path_cache: str = f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/cache_dadata/cache_dadata.db"
-        fle: Path = Path(path_cache)
-        if not os.path.exists(os.path.dirname(fle)):
-            os.makedirs(os.path.dirname(fle))
-        fle.touch(exist_ok=True)
-        return sqlite3.connect(path_cache)
-
-    def load_cache(self) -> sqlite3.Cursor:
-        """
-        Loading the cache.
-        """
-        cur: sqlite3.Cursor = self.conn.cursor()
-        cur.execute(f"""CREATE TABLE IF NOT EXISTS {self.table_name}(
-            inn TEXT PRIMARY KEY, 
-            dadata_company_name TEXT,
-            dadata_address TEXT,
-            dadata_region TEXT,
-            dadata_federal_district TEXT,
-            dadata_city TEXT,
-            dadata_okved_activity_main_type TEXT,
-            dadata_branch_name TEXT,
-            dadata_branch_address TEXT,
-            dadata_branch_region TEXT)
-        """)
-        self.conn.commit()
-        logger.info(f"Cache table {self.table_name} is created")
-        return cur
-
-    def cache_add_and_save(self, dict_data: dict) -> None:
-        """
-        Saving and adding the result to the cache.
-        """
-        self.cur.executemany(f"INSERT or IGNORE INTO {self.table_name} "
-                             f"VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
-            (
-                dict_data["inn"],
-                dict_data["dadata_company_name"],
-                dict_data["dadata_address"],
-                dict_data["dadata_region"],
-                dict_data["dadata_federal_district"],
-                dict_data["dadata_city"],
-                dict_data["dadata_okved_activity_main_type"],
-                dict_data["dadata_branch_name"],
-                dict_data["dadata_branch_address"],
-                dict_data["dadata_branch_region"],
-             )
-        ])
-        self.conn.commit()
-        logger.info(f"Data inserted to cache by inn {dict_data['inn']}")
 
     @staticmethod
     def connect_to_db() -> Client:
@@ -234,15 +136,7 @@ class ReferenceCompass(object):
         """
         Get data from the cache in order not to go to dadata again, because the limit is 10000 requests per day.
         """
-        if rows := self.cur.execute(f'SELECT * FROM "{self.table_name}" ' f'WHERE inn=?',
-                                    (dict_data["inn"],),).fetchall():
-            logger.info(f"Data getting from cache by inn {dict_data['inn']}. Index is {index}")
-            dict_dadata = dict(zip([c[0] for c in self.cur.description], rows[0]))
-            dict_dadata.pop("inn")
-            for key, value in dict_dadata.items():
-                dict_data[key] = value
-        else:
-            self.connect_to_dadata(dict_data, index)
+        self.get_data_from_service_inn(dict_data, index)
         if not dict_data["dadata_branch_name"] \
                 and not dict_data["dadata_branch_address"] and not dict_data["dadata_branch_region"]:
             dict_data["dadata_branch_name"] = None
@@ -310,31 +204,20 @@ class ReferenceCompass(object):
                 if company_data and company_address:
                     self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
                                             company, dict_data)
-                    self.cache_add_and_save(dict_data)
             except Exception as ex_parse:
                 logger.error(f"Error code: error processing in row {index + 1}! "
                              f"Error is {ex_parse} Data is {dict_data}")
                 self.save_to_csv(dict_data)
 
-    def connect_to_dadata(self, dict_data: dict, index: int) -> None:
+    def get_data_from_service_inn(self, dict_data: dict, index: int) -> None:
         """
         Connect to dadata.
         """
-        dadata: DadataClient = DadataClient(self.token)
-        try:
-            dadata_request: Union[list, None] = dadata.find_by_id("party", dict_data["inn"])
-        except httpx.ConnectError as ex_connect:
-            logger.error(
-                f"Failed to connect dadata {ex_connect}. Type error is {type(ex_connect)}. Data is {dict_data}")
-            time.sleep(30)
-            dadata_request = dadata.find_by_id("party", dict_data["inn"])
-        except Exception as ex_all:
-            logger.error(f"Unknown error in dadata {ex_all}. Type error is {type(ex_all)}. Data is {dict_data}")
-            dadata_request = None
-            self.save_to_csv(dict_data)
-        if dadata_request:
-            self.cache_add_and_save_dadata(dict_data['inn'], str(dadata_request))
-            self.get_data_from_dadata(dadata_request, dict_data, index)
+        data: dict = {
+            "inn": dict_data["inn"]
+        }
+        response = requests.post("http://service_inn:8003", json=data).json()
+        self.get_data_from_dadata(response, dict_data, index)
 
     def save_to_csv(self, dict_data: dict) -> None:
         df: pd.DataFrame = pd.DataFrame([dict_data])
@@ -415,8 +298,7 @@ class ReferenceCompass(object):
 
 
 if __name__ == "__main__":
-    reference_compass: ReferenceCompass = ReferenceCompass(sys.argv[1], sys.argv[2],
-                                                           "3321a7103852f488c92dbbd926b2e554ad63fb49")
+    reference_compass: ReferenceCompass = ReferenceCompass(sys.argv[1], sys.argv[2])
     try:
         reference_compass.main()
     except Exception as ex:
