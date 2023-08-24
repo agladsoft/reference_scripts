@@ -173,7 +173,8 @@ class ReferenceCompass(object):
         """
         dict_data["dadata_company_name"] = \
             f'{company_data.get("opf").get("short", "") if company_data.get("opf") else ""} ' \
-            f'{company_data["name"]["full"]}'.strip()
+            f'{company_data["name"]["full"]}'.strip() \
+            if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_company_name"]
         dict_data["dadata_address"] = company_address["unrestricted_value"] \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_address"]
         dict_data["dadata_region"] = company_address_data["region_with_type"] \
