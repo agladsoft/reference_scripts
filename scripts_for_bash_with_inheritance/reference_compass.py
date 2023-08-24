@@ -273,7 +273,7 @@ class ReferenceCompass(object):
                 company_address: dict = company_data.get("address")
                 company_address_data: dict = company_address.get("data", {})
                 company_data_branch: dict = company_data.get("branch_type")
-                if company_data and company_address:
+                if company_data and company_data["state"]["status"] != "LIQUIDATED":
                     self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
                                             company, dict_data)
                     self.cache_add_and_save(dict_data)
