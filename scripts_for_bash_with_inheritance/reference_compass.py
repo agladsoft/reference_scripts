@@ -217,8 +217,9 @@ class ReferenceCompass(object):
         data: dict = {
             "inn": dict_data["inn"]
         }
-        response = requests.post("http://service_inn:8003", json=data).json()
-        self.get_data_from_dadata(response, dict_data, index)
+        response = requests.post("http://service_inn:8003", json=data)
+        if response.status_code == 200:
+            self.get_data_from_dadata(response.json(), dict_data, index)
 
     def save_to_csv(self, dict_data: dict) -> None:
         df: pd.DataFrame = pd.DataFrame([dict_data])
@@ -293,7 +294,7 @@ class ReferenceCompass(object):
             self.parse_xlsx(ws, parsed_data)
             self.handle_raw_data(parsed_data)
             parsed_data: list = self.leave_largest_data_with_dupl_inn(parsed_data)
-            self.change_data_in_db(parsed_data)
+            # self.change_data_in_db(parsed_data)
             self.write_to_json(parsed_data)
             logger.info("The script has completed its work")
 
