@@ -167,7 +167,8 @@ class ReferenceCompass(object):
 
     @staticmethod
     def add_dadata_columns(company_data: dict, company_address: dict, company_address_data: dict,
-                           company_data_branch: dict, company: dict, dict_data: dict) -> None:
+                           company_data_branch: dict, company: dict, dict_data: dict,
+                           is_company_name_from_cache: bool) -> None:
         """
         Add values from dadata to the dictionary.
         """
@@ -191,12 +192,13 @@ class ReferenceCompass(object):
             if company_data_branch == "BRANCH" else ''
         dict_data["dadata_branch_region"] += company_address_data["region_with_type"] + '\n' \
             if company_data_branch == "BRANCH" else ''
+        dict_data["is_company_name_from_cache"] = is_company_name_from_cache
 
     def get_data_from_dadata(self, dadata_request: list, dict_data: dict, index: int) -> None:
         """
         Get data from dadata.
         """
-        for company in dadata_request:
+        for company in dadata_request[0]:
             try:
                 company_data: dict = company.get("data")
                 company_address: dict = company_data.get("address")
@@ -204,7 +206,7 @@ class ReferenceCompass(object):
                 company_data_branch: dict = company_data.get("branch_type")
                 if company_data and company_data["state"]["status"] != "LIQUIDATED":
                     self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
-                                            company, dict_data)
+                                            company, dict_data, dadata_request[1])
             except Exception as ex_parse:
                 logger.error(f"Error code: error processing in row {index + 1}! "
                              f"Error is {ex_parse} Data is {dict_data}")
@@ -294,7 +296,7 @@ class ReferenceCompass(object):
             self.parse_xlsx(ws, parsed_data)
             self.handle_raw_data(parsed_data)
             parsed_data: list = self.leave_largest_data_with_dupl_inn(parsed_data)
-            # self.change_data_in_db(parsed_data)
+            self.change_data_in_db(parsed_data)
             self.write_to_json(parsed_data)
             logger.info("The script has completed its work")
 
