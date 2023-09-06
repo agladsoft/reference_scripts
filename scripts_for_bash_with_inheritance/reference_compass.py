@@ -152,6 +152,9 @@ class ReferenceCompass(object):
                 with contextlib.suppress(Exception):
                     if key in ["registration_date"]:
                         dict_data[key] = str(value.date())
+                    elif key in ["revenue_at_upload_date_thousand_rubles", "employees_number_at_upload_date",
+                                 "net_profit_or_loss_at_upload_date_thousand_rubles"]:
+                        dict_data[key] = int(value) if value.isdigit() else None
             self.add_new_columns(dict_data)
             self.get_data_from_cache(dict_data, index)
 
