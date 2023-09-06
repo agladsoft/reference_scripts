@@ -151,7 +151,7 @@ class ReferenceCompass(object):
             for key, value in dict_data.items():
                 with contextlib.suppress(Exception):
                     if key in ["registration_date"]:
-                        dict_data[key] = str(value.date())
+                        dict_data[key] = str(value.date()) if value else None
                     elif key in ["revenue_at_upload_date_thousand_rubles", "employees_number_at_upload_date",
                                  "net_profit_or_loss_at_upload_date_thousand_rubles"]:
                         dict_data[key] = int(value) if value.isdigit() else None
