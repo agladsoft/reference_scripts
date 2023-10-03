@@ -66,7 +66,7 @@ def process(input_file_path):
                 columns[key].append(value)
     zip_list = list(columns)
     month = zip_list[0].rsplit(' ', 1)
-    if month[0] in month_list:
+    if month[0].strip() in month_list:
         month_digit = month_list.index(month[0]) + 1
     context['month'] = month_digit
     context['year'] = int(month[1])
