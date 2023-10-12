@@ -67,7 +67,7 @@ def process(input_file_path):
     zip_list = list(columns)
     month = zip_list[0].rsplit(' ', 1)
     if month[0].strip() in month_list:
-        month_digit = month_list.index(month[0]) + 1
+        month_digit = month_list.index(month[0].strip()) + 1
     context['month'] = month_digit
     context['year'] = int(month[1])
     for (enum, ship_name), ship_name_number in zip(enumerate(columns[zip_list[0]]), columns[zip_list[1]]):
