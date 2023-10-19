@@ -214,7 +214,9 @@ class ReferenceCompass(object):
                 dict_data["status"] = company_data["state"]["status"]
                 dict_data["registration_date"] = datetime.utcfromtimestamp(
                     company_data["state"]["registration_date"] // 1000).strftime('%Y-%m-%d')
-                dict_data["liquidation_date"] = company_data["state"]["liquidation_date"]
+                dict_data["liquidation_date"] = \
+                    datetime.utcfromtimestamp(company_data["state"]["liquidation_date"] // 1000).strftime('%Y-%m-%d') \
+                    if company_data["state"]["liquidation_date"] else None
                 if company_data and company_data["state"]["status"] != "LIQUIDATED":
                     self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
                                             company, dict_data, dadata_request[1])
