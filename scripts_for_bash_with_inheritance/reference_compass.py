@@ -195,9 +195,9 @@ class ReferenceCompass(object):
             if company_data_branch == "BRANCH" else ''
         dict_data["dadata_branch_region"] += company_address_data["region_with_type"] + '\n' \
             if company_data_branch == "BRANCH" else ''
-        dict_data["geo_lat"] = company_address_data["geo_lat"] \
+        dict_data["dadata_geo_lat"] = company_address_data["geo_lat"] \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["geo_lat"]
-        dict_data["geo_lon"] = company_address_data["geo_lon"] \
+        dict_data["dadata_geo_lon"] = company_address_data["geo_lon"] \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["geo_lat"]
         dict_data["is_company_name_from_cache"] = is_company_name_from_cache
 
@@ -211,10 +211,10 @@ class ReferenceCompass(object):
                 company_address: dict = company_data.get("address")
                 company_address_data: dict = company_address.get("data", {})
                 company_data_branch: dict = company_data.get("branch_type")
-                dict_data["status"] = company_data["state"]["status"]
-                dict_data["registration_date"] = datetime.utcfromtimestamp(
+                dict_data["dadata_status"] = company_data["state"]["status"]
+                dict_data["dadata_registration_date"] = datetime.utcfromtimestamp(
                     company_data["state"]["registration_date"] // 1000).strftime('%Y-%m-%d')
-                dict_data["liquidation_date"] = \
+                dict_data["dadata_liquidation_date"] = \
                     datetime.utcfromtimestamp(company_data["state"]["liquidation_date"] // 1000).strftime('%Y-%m-%d') \
                     if company_data["state"]["liquidation_date"] else None
                 if company_data and company_data["state"]["status"] != "LIQUIDATED":
