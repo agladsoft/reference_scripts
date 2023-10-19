@@ -195,6 +195,10 @@ class ReferenceCompass(object):
             if company_data_branch == "BRANCH" else ''
         dict_data["dadata_branch_region"] += company_address_data["region_with_type"] + '\n' \
             if company_data_branch == "BRANCH" else ''
+        dict_data["geo_lat"] = company_address_data["geo_lat"] \
+            if company_data_branch == "MAIN" or not company_data_branch else dict_data["geo_lat"]
+        dict_data["geo_lon"] = company_address_data["geo_lon"] \
+            if company_data_branch == "MAIN" or not company_data_branch else dict_data["geo_lat"]
         dict_data["is_company_name_from_cache"] = is_company_name_from_cache
 
     def get_data_from_dadata(self, dadata_request: list, dict_data: dict, index: int) -> None:
@@ -207,6 +211,10 @@ class ReferenceCompass(object):
                 company_address: dict = company_data.get("address")
                 company_address_data: dict = company_address.get("data", {})
                 company_data_branch: dict = company_data.get("branch_type")
+                dict_data["status"] = company_data["state"]["status"]
+                dict_data["registration_date"] = datetime.utcfromtimestamp(
+                    company_data["state"]["registration_date"] // 1000).strftime('%Y-%m-%d')
+                dict_data["liquidation_date"] = company_data["state"]["liquidation_date"]
                 if company_data and company_data["state"]["status"] != "LIQUIDATED":
                     self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
                                             company, dict_data, dadata_request[1])
@@ -222,7 +230,7 @@ class ReferenceCompass(object):
         data: dict = {
             "inn": dict_data["inn"]
         }
-        response = requests.post("http://service_inn:8003", json=data)
+        response = requests.post("http://10.23.4.203:8003", json=data)
         if response.status_code == 200:
             self.get_data_from_dadata(response.json(), dict_data, index)
 
@@ -299,7 +307,7 @@ class ReferenceCompass(object):
             self.parse_xlsx(ws, parsed_data)
             self.handle_raw_data(parsed_data)
             parsed_data: list = self.leave_largest_data_with_dupl_inn(parsed_data)
-            self.change_data_in_db(parsed_data)
+            # self.change_data_in_db(parsed_data)
             self.write_to_json(parsed_data)
             logger.info("The script has completed its work")
 
