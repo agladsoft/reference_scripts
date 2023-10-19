@@ -232,7 +232,7 @@ class ReferenceCompass(object):
         data: dict = {
             "inn": dict_data["inn"]
         }
-        response = requests.post(f"http://{get_my_env_var('HOST')}:8003", json=data)
+        response = requests.post("http://10.23.4.203:8003", json=data)
         if response.status_code == 200:
             self.get_data_from_dadata(response.json(), dict_data, index)
 
