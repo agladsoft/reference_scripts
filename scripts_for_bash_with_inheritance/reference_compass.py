@@ -6,6 +6,7 @@ import requests
 import app_logger
 import contextlib
 import pandas as pd
+from typing import Optional
 from datetime import datetime
 from dotenv import load_dotenv
 from clickhouse_connect import get_client
@@ -14,6 +15,14 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
 load_dotenv()
+
+DATE_FORMATS: list = [
+    "%m/%d/%y",
+    "%d.%m.%Y",
+    "%Y-%m-%d %H:%M:%S",
+    "%m/%d/%Y",
+    "%d%b%Y"
+]
 
 list_join_columns: list = ["telephone_number", "email"]
 
@@ -143,6 +152,16 @@ class ReferenceCompass(object):
             dict_data["dadata_branch_address"] = None
             dict_data["dadata_branch_region"] = None
 
+    @staticmethod
+    def convert_format_date(date: str) -> Optional[str]:
+        """
+        Convert to a date type.
+        """
+        for date_format in DATE_FORMATS:
+            with contextlib.suppress(ValueError):
+                return str(datetime.strptime(date, date_format).date())
+        return None
+
     def handle_raw_data(self, parsed_data: list) -> None:
         """
         Change data types or changing values.
@@ -151,7 +170,7 @@ class ReferenceCompass(object):
             for key, value in dict_data.items():
                 with contextlib.suppress(Exception):
                     if key in ["registration_date"]:
-                        dict_data[key] = str(value.date()) if value else None
+                        dict_data[key] = self.convert_format_date(value) if value else None
                     elif key in ["revenue_at_upload_date_thousand_rubles", "employees_number_at_upload_date",
                                  "net_profit_or_loss_at_upload_date_thousand_rubles"]:
                         dict_data[key] = int(value) if value.isdigit() else None
