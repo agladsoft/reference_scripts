@@ -196,9 +196,9 @@ class ReferenceCompass(object):
         dict_data["dadata_branch_region"] += company_address_data["region_with_type"] + '\n' \
             if company_data_branch == "BRANCH" else ''
         dict_data["dadata_geo_lat"] = company_address_data["geo_lat"] \
-            if company_data_branch == "MAIN" or not company_data_branch else dict_data["geo_lat"]
+            if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_geo_lat"]
         dict_data["dadata_geo_lon"] = company_address_data["geo_lon"] \
-            if company_data_branch == "MAIN" or not company_data_branch else dict_data["geo_lat"]
+            if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_geo_lat"]
         dict_data["is_company_name_from_cache"] = is_company_name_from_cache
 
     def get_data_from_dadata(self, dadata_request: list, dict_data: dict, index: int) -> None:
@@ -240,6 +240,7 @@ class ReferenceCompass(object):
         df: pd.DataFrame = pd.DataFrame([dict_data])
         index_of_column: int = df.columns.get_loc('original_file_name')
         columns_slice: pd.DataFrame = df.iloc[:, :index_of_column]
+        columns_slice = columns_slice["inn"].astype(str)
         with open(f"{os.path.dirname(self.input_file_path)}/completed_with_error_data.csv", 'a') as f:
             columns_slice.to_csv(f, header=f.tell() == 0, index=False)
 
@@ -279,9 +280,10 @@ class ReferenceCompass(object):
                     except AttributeError:
                         if value[1] == 'inn' and len(str(cell.value)) < 10:
                             logger.error(f"Error code: error processing in row {index + 1}!")
-                            print(f"in_row_{index + 1}", file=sys.stderr)
-                            sys.exit(1)
-                        dict_columns[value[1]] = cell.value
+                            cell.value = f"0{cell.value}"
+                            # print(f"in_row_{index + 1}", file=sys.stderr)
+                            # sys.exit(1)
+                        dict_columns[value[1]] = str(cell.value)
 
     def parse_xlsx(self, ws: Worksheet, parsed_data: list) -> None:
         """
