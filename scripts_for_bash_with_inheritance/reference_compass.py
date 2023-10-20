@@ -212,8 +212,9 @@ class ReferenceCompass(object):
                 company_address_data: dict = company_address.get("data", {})
                 company_data_branch: dict = company_data.get("branch_type")
                 dict_data["dadata_status"] = company_data["state"]["status"]
-                dict_data["dadata_registration_date"] = datetime.utcfromtimestamp(
-                    company_data["state"]["registration_date"] // 1000).strftime('%Y-%m-%d')
+                dict_data["dadata_registration_date"] = \
+                    datetime.utcfromtimestamp(company_data["state"]["registration_date"] // 1000).strftime('%Y-%m-%d') \
+                    if company_data["state"]["registration_date"] else None
                 dict_data["dadata_liquidation_date"] = \
                     datetime.utcfromtimestamp(company_data["state"]["liquidation_date"] // 1000).strftime('%Y-%m-%d') \
                     if company_data["state"]["liquidation_date"] else None
