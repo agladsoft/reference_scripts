@@ -240,7 +240,6 @@ class ReferenceCompass(object):
         df: pd.DataFrame = pd.DataFrame([dict_data])
         index_of_column: int = df.columns.get_loc('original_file_name')
         columns_slice: pd.DataFrame = df.iloc[:, :index_of_column]
-        columns_slice = columns_slice["inn"].astype(str)
         with open(f"{os.path.dirname(self.input_file_path)}/completed_with_errors_data.csv", 'a') as f:
             columns_slice.to_csv(f, header=f.tell() == 0, index=False)
 
