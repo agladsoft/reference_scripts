@@ -78,7 +78,6 @@ def parse_data(i, dict_data, semaphore):
         dict_data['original_file_parsed_on'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
         logging.info(f'{i} data is {dict_data}')
-        logger_stream.info(f'{i} data is {dict_data}')
         basename = os.path.basename(input_file_path)
         output_file_path = os.path.join(output_folder, f'{basename}_{i}.json')
         with open(f"{output_file_path}", 'w', encoding='utf-8') as f:
