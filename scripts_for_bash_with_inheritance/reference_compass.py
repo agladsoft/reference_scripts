@@ -6,6 +6,7 @@ import requests
 import app_logger
 import contextlib
 import pandas as pd
+from typing import Optional
 from datetime import datetime
 from dotenv import load_dotenv
 from clickhouse_connect import get_client
@@ -14,6 +15,14 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
 load_dotenv()
+
+DATE_FORMATS: list = [
+    "%m/%d/%y",
+    "%d.%m.%Y",
+    "%Y-%m-%d %H:%M:%S",
+    "%m/%d/%Y",
+    "%d%b%Y"
+]
 
 list_join_columns: list = ["telephone_number", "email"]
 
@@ -143,6 +152,16 @@ class ReferenceCompass(object):
             dict_data["dadata_branch_address"] = None
             dict_data["dadata_branch_region"] = None
 
+    @staticmethod
+    def convert_format_date(date: str) -> Optional[str]:
+        """
+        Convert to a date type.
+        """
+        for date_format in DATE_FORMATS:
+            with contextlib.suppress(ValueError):
+                return str(datetime.strptime(date, date_format).date())
+        return None
+
     def handle_raw_data(self, parsed_data: list) -> None:
         """
         Change data types or changing values.
@@ -151,7 +170,7 @@ class ReferenceCompass(object):
             for key, value in dict_data.items():
                 with contextlib.suppress(Exception):
                     if key in ["registration_date"]:
-                        dict_data[key] = str(value.date()) if value else None
+                        dict_data[key] = self.convert_format_date(value) if value else None
                     elif key in ["revenue_at_upload_date_thousand_rubles", "employees_number_at_upload_date",
                                  "net_profit_or_loss_at_upload_date_thousand_rubles"]:
                         dict_data[key] = int(value) if value.isdigit() else None
@@ -195,6 +214,10 @@ class ReferenceCompass(object):
             if company_data_branch == "BRANCH" else ''
         dict_data["dadata_branch_region"] += company_address_data["region_with_type"] + '\n' \
             if company_data_branch == "BRANCH" else ''
+        dict_data["dadata_geo_lat"] = company_address_data["geo_lat"] \
+            if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_geo_lat"]
+        dict_data["dadata_geo_lon"] = company_address_data["geo_lon"] \
+            if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_geo_lat"]
         dict_data["is_company_name_from_cache"] = is_company_name_from_cache
 
     def get_data_from_dadata(self, dadata_request: list, dict_data: dict, index: int) -> None:
@@ -207,6 +230,13 @@ class ReferenceCompass(object):
                 company_address: dict = company_data.get("address")
                 company_address_data: dict = company_address.get("data", {})
                 company_data_branch: dict = company_data.get("branch_type")
+                dict_data["dadata_status"] = company_data["state"]["status"]
+                dict_data["dadata_registration_date"] = \
+                    datetime.utcfromtimestamp(company_data["state"]["registration_date"] // 1000).strftime('%Y-%m-%d') \
+                    if company_data["state"]["registration_date"] else None
+                dict_data["dadata_liquidation_date"] = \
+                    datetime.utcfromtimestamp(company_data["state"]["liquidation_date"] // 1000).strftime('%Y-%m-%d') \
+                    if company_data["state"]["liquidation_date"] else None
                 if company_data and company_data["state"]["status"] != "LIQUIDATED":
                     self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
                                             company, dict_data, dadata_request[1])
@@ -230,7 +260,7 @@ class ReferenceCompass(object):
         df: pd.DataFrame = pd.DataFrame([dict_data])
         index_of_column: int = df.columns.get_loc('original_file_name')
         columns_slice: pd.DataFrame = df.iloc[:, :index_of_column]
-        with open(f"{os.path.dirname(self.input_file_path)}/completed_with_error_data.csv", 'a') as f:
+        with open(f"{os.path.dirname(self.input_file_path)}/completed_with_errors_data.csv", 'a') as f:
             columns_slice.to_csv(f, header=f.tell() == 0, index=False)
 
     def write_to_json(self, parsed_data: list) -> None:
@@ -269,9 +299,10 @@ class ReferenceCompass(object):
                     except AttributeError:
                         if value[1] == 'inn' and len(str(cell.value)) < 10:
                             logger.error(f"Error code: error processing in row {index + 1}!")
-                            print(f"in_row_{index + 1}", file=sys.stderr)
-                            sys.exit(1)
-                        dict_columns[value[1]] = cell.value
+                            cell.value = f"0{cell.value}"
+                            # print(f"in_row_{index + 1}", file=sys.stderr)
+                            # sys.exit(1)
+                        dict_columns[value[1]] = str(cell.value)
 
     def parse_xlsx(self, ws: Worksheet, parsed_data: list) -> None:
         """

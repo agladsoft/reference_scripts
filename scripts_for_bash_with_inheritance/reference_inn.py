@@ -1,6 +1,8 @@
 import contextlib
 import json
 from multiprocessing import Pool
+from threading import Thread, Semaphore
+from typing import List
 from datetime import datetime
 import logging
 import os
@@ -16,7 +18,9 @@ worker_count = 4
 if not os.path.exists(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging"):
     os.mkdir(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging")
 
-logging.basicConfig(filename=f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging/{os.path.basename(__file__)}.log", level=logging.DEBUG)
+logging.basicConfig(filename=f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging/"
+                    f"{os.path.basename(__file__).replace('.py', '')}_{os.path.basename(sys.argv[1])}.log",
+                    level=logging.DEBUG)
 log = logging.getLogger()
 
 console_out = logging.StreamHandler()
@@ -55,35 +59,40 @@ df = trim_all_columns(df)
 parsed_data = df.to_dict('records')
 
 
-def parse_data(i, dict_data):
-    for key, value in dict_data.items():
-        with contextlib.suppress(Exception):
-            if key == 'company_name_unified':
-                company_name_unified = value
-            elif key == 'company_name':
-                company_name_rus = GoogleTranslator(source='en', target='ru').translate(value)
-                dict_data['company_name_rus'] = company_name_rus
-            elif key == 'confidence_rate':
-                company_name_unified = re.sub(" +", " ", company_name_unified)
-                company_name_rus = re.sub(" +", " ", company_name_rus)
-                company_name_unified = company_name_unified.translate({ord(c): " " for c in ",'!@#$%^&*()[]{};<>?\|`~=_+"})
-                company_name_rus = company_name_rus.translate({ord(c): "" for c in ",'!@#$%^&*()[]{};<>?\|`~=_+"})
-                dict_data['confidence_rate'] = fuzz.partial_ratio(company_name_unified.upper(), company_name_rus.upper())
-    dict_data['original_file_name'] = os.path.basename(input_file_path)
-    dict_data['original_file_parsed_on'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+def parse_data(i, dict_data, semaphore):
+    with semaphore:
+        for key, value in dict_data.items():
+            with contextlib.suppress(Exception):
+                if key == 'company_name_unified':
+                    company_name_unified = value
+                elif key == 'company_name':
+                    company_name_rus = GoogleTranslator(source='en', target='ru').translate(value)
+                    dict_data['company_name_rus'] = company_name_rus
+                elif key == 'confidence_rate':
+                    company_name_unified = re.sub(" +", " ", company_name_unified)
+                    company_name_rus = re.sub(" +", " ", company_name_rus)
+                    company_name_unified = company_name_unified.translate({ord(c): " " for c in ",'!@#$%^&*()[]{};<>?\|`~=_+"})
+                    company_name_rus = company_name_rus.translate({ord(c): "" for c in ",'!@#$%^&*()[]{};<>?\|`~=_+"})
+                    dict_data['confidence_rate'] = fuzz.partial_ratio(company_name_unified.upper(), company_name_rus.upper())
+        dict_data['original_file_name'] = os.path.basename(input_file_path)
+        dict_data['original_file_parsed_on'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-    logging.info(f'{i} data is {dict_data}')
-    logger_stream.info(f'{i} data is {dict_data}')
-    basename = os.path.basename(input_file_path)
-    output_file_path = os.path.join(output_folder, f'{basename}_{i}.json')
-    with open(f"{output_file_path}", 'w', encoding='utf-8') as f:
-        json.dump(dict_data, f, ensure_ascii=False, indent=4)
+        logging.info(f'{i} data is {dict_data}')
+        logger_stream.info(f'{i} data is {dict_data}')
+        basename = os.path.basename(input_file_path)
+        output_file_path = os.path.join(output_folder, f'{basename}_{i}.json')
+        with open(f"{output_file_path}", 'w', encoding='utf-8') as f:
+            json.dump(dict_data, f, ensure_ascii=False, indent=4)
 
 
-procs = []
-with Pool(processes=worker_count) as pool:
-    for i, dict_data in enumerate(parsed_data, 2):
-        proc = pool.apply_async(parse_data, (i, dict_data))
-        procs.append(proc)
-
-    results = [proc.get() for proc in procs]
+threads: List[Thread] = []
+semaphore: Semaphore = Semaphore(worker_count)
+for i, dict_data in enumerate(parsed_data, 2):
+    thread: Thread = Thread(target=parse_data, args=(i, dict_data, semaphore))
+    threads.append(thread)
+    thread.start()
+while any(thread.is_alive() for thread in threads):
+    # Здесь можно выполнять другие действия, пока процессы выполняются
+    pass
+for thread in threads:
+    thread.join()
