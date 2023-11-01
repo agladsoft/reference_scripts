@@ -57,7 +57,7 @@ class ReferenceInn:
         :return: Client ClickHouse.
         """
         try:
-            client = get_client(host=get_my_env_var('HOST'), database=get_my_env_var('DATABASE'),
+            client = get_client(host=get_my_env_var('HOST'), database="fts",
                                 username=get_my_env_var('USERNAME_DB'), password=get_my_env_var('PASSWORD'))
             self.logger.info("Successfully connect to db")
             fts = client.query("SELECT DISTINCT recipients_tin, name_of_the_contract_holder FROM fts")
