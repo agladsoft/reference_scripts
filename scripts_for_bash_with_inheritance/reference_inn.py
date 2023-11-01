@@ -43,11 +43,11 @@ class ReferenceInn:
                                      f"{os.path.basename(__file__).replace('.py', '')}_"
                                      f"{os.path.basename(self.input_file_path)}.log",
                                      level=logging.DEBUG)
-        console_out = logging.StreamHandler()
+        # console_out = logging.StreamHandler()
         logger_stream = logging.getLogger("stream")
         if logger_stream.hasHandlers():
             logger_stream.handlers.clear()
-        logger_stream.addHandler(console_out)
+        # logger_stream.addHandler(console_out)
         logger_stream.setLevel(logging.INFO)
         return logger_stream
 
