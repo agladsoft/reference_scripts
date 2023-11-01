@@ -1,8 +1,6 @@
 import contextlib
 import json
-from threading import Thread, Semaphore, active_count
 from concurrent.futures import ThreadPoolExecutor
-from typing import List
 from datetime import datetime
 import logging
 import os
