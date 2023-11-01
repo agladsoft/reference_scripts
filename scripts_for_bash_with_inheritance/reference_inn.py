@@ -9,6 +9,7 @@ import pandas as pd
 from fuzzywuzzy import fuzz
 from datetime import datetime
 from dotenv import load_dotenv
+from threading import current_thread
 from clickhouse_connect import get_client
 from deep_translator import GoogleTranslator
 from concurrent.futures import ThreadPoolExecutor
@@ -28,6 +29,12 @@ class MissingEnvironmentVariable(Exception):
     pass
 
 
+class CustomAdapter(logging.LoggerAdapter):
+    def process(self, msg, kwargs):
+        my_context = kwargs.pop('thread', self.extra['thread'])
+        return f'[thread - {my_context}] {msg}', kwargs
+
+
 class ReferenceInn:
     def __init__(self, input_file, output_folder, worker_count=10):
         self.input_file_path = os.path.abspath(input_file)
@@ -38,16 +45,17 @@ class ReferenceInn:
     def setup_logging(self):
         if not os.path.exists(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging"):
             os.mkdir(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging")
-
+        _log_format: str = "[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s"
         logging.basicConfig(filename=f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging/"
                                      f"{os.path.basename(__file__).replace('.py', '')}_"
                                      f"{os.path.basename(self.input_file_path)}.log",
-                                     level=logging.DEBUG)
+                            level=logging.DEBUG, format=_log_format)
         # console_out = logging.StreamHandler()
         logger_stream = logging.getLogger("stream")
         if logger_stream.hasHandlers():
             logger_stream.handlers.clear()
         # logger_stream.addHandler(console_out)
+        logger_stream = CustomAdapter(logger_stream, {"thread": None})
         logger_stream.setLevel(logging.INFO)
         return logger_stream
 
@@ -91,7 +99,7 @@ class ReferenceInn:
         return df.to_dict('records')
 
     def write_to_json(self, i, dict_data):
-        self.logger.info(f'{i} data is {dict_data}')
+        self.logger.info(f'{i} data is {dict_data}', thread=current_thread().ident)
         basename = os.path.basename(self.input_file_path)
         output_file_path = os.path.join(self.output_folder, f'{basename}_{i}.json')
         with open(output_file_path, 'w', encoding='utf-8') as f:
