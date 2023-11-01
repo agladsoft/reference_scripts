@@ -99,7 +99,7 @@ class ReferenceInn:
         return df.to_dict('records')
 
     def write_to_json(self, i, dict_data):
-        self.logger.info(f'{i} data is {dict_data}', thread=current_thread().ident)
+        self.logger.info(f'{i} data is {dict_data["company_name"]}', thread=current_thread().ident)
         basename = os.path.basename(self.input_file_path)
         output_file_path = os.path.join(self.output_folder, f'{basename}_{i}.json')
         with open(output_file_path, 'w', encoding='utf-8') as f:
