@@ -174,6 +174,8 @@ class ReferenceCompass(object):
                     elif key in ["revenue_at_upload_date_thousand_rubles", "employees_number_at_upload_date",
                                  "net_profit_or_loss_at_upload_date_thousand_rubles"]:
                         dict_data[key] = int(value) if value.isdigit() else None
+                    elif value == 'None':
+                        dict_data[key] = None
             self.add_new_columns(dict_data)
             self.get_data_from_cache(dict_data, index)
 
@@ -330,7 +332,7 @@ class ReferenceCompass(object):
             self.parse_xlsx(ws, parsed_data)
             self.handle_raw_data(parsed_data)
             parsed_data: list = self.leave_largest_data_with_dupl_inn(parsed_data)
-            self.change_data_in_db(parsed_data)
+            # self.change_data_in_db(parsed_data)
             self.write_to_json(parsed_data)
             logger.info("The script has completed its work")
 
