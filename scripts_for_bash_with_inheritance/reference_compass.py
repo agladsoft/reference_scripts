@@ -89,6 +89,7 @@ class ReferenceCompass(object):
         self.table_name: str = "cache_dadata"
         self.input_file_path: str = input_file_path
         self.output_folder: str = output_folder
+        self.original_columns: dict = {}
 
     @staticmethod
     def connect_to_db() -> Client:
@@ -200,25 +201,25 @@ class ReferenceCompass(object):
             f'{company_data.get("opf").get("short", "") if company_data.get("opf") else ""} ' \
             f'{company_data["name"]["full"]}'.strip() \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_company_name"]
-        dict_data["dadata_address"] = company_address["unrestricted_value"] \
+        dict_data["dadata_address"] = company_address.get("unrestricted_value") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_address"]
-        dict_data["dadata_region"] = company_address_data["region_with_type"] \
+        dict_data["dadata_region"] = company_address_data.get("region_with_type") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_region"]
-        dict_data["dadata_federal_district"] = company_address_data["federal_district"] \
+        dict_data["dadata_federal_district"] = company_address_data.get("federal_district") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_federal_district"]
-        dict_data["dadata_city"] = company_address_data["city"] \
+        dict_data["dadata_city"] = company_address_data.get("city") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_city"]
-        dict_data["dadata_okved_activity_main_type"] = company_data["okved"] \
+        dict_data["dadata_okved_activity_main_type"] = company_data.get("okved") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_okved_activity_main_type"]
-        dict_data["dadata_branch_name"] += f'{company["value"]}, КПП {company_data.get("kpp", "")}' + '\n' \
+        dict_data["dadata_branch_name"] += f'{company.get("value")}, КПП {company_data.get("kpp", "")}' + '\n' \
             if company_data_branch == "BRANCH" else ''
         dict_data["dadata_branch_address"] += company_address["unrestricted_value"] + '\n' \
             if company_data_branch == "BRANCH" else ''
         dict_data["dadata_branch_region"] += company_address_data["region_with_type"] + '\n' \
             if company_data_branch == "BRANCH" else ''
-        dict_data["dadata_geo_lat"] = company_address_data["geo_lat"] \
+        dict_data["dadata_geo_lat"] = company_address_data.get("geo_lat") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_geo_lat"]
-        dict_data["dadata_geo_lon"] = company_address_data["geo_lon"] \
+        dict_data["dadata_geo_lon"] = company_address_data.get("geo_lon") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_geo_lat"]
         dict_data["is_company_name_from_cache"] = is_company_name_from_cache
 
@@ -229,7 +230,7 @@ class ReferenceCompass(object):
         for company in dadata_request[0]:
             try:
                 company_data: dict = company.get("data")
-                company_address: dict = company_data.get("address")
+                company_address: dict = company_data.get("address") or {}
                 company_address_data: dict = company_address.get("data", {})
                 company_data_branch: dict = company_data.get("branch_type")
                 dict_data["dadata_status"] = company_data["state"]["status"]
@@ -262,7 +263,9 @@ class ReferenceCompass(object):
         df: pd.DataFrame = pd.DataFrame([dict_data])
         index_of_column: int = df.columns.get_loc('original_file_name')
         columns_slice: pd.DataFrame = df.iloc[:, :index_of_column]
-        with open(f"{os.path.dirname(self.input_file_path)}/completed_with_errors_data.csv", 'a') as f:
+        columns_slice.rename(columns=self.original_columns, inplace=True)
+        with open(f"{os.path.dirname(self.input_file_path)}/{os.path.basename(self.input_file_path)}_errors.csv", 'a') \
+                as f:
             columns_slice.to_csv(f, header=f.tell() == 0, index=False)
 
     def write_to_json(self, parsed_data: list) -> None:
@@ -274,8 +277,7 @@ class ReferenceCompass(object):
         with open(f"{output_file_path}", 'w', encoding='utf-8') as f:
             json.dump(parsed_data, f, ensure_ascii=False, indent=4)
 
-    @staticmethod
-    def get_column_eng(column: tuple, dict_header: dict) -> None:
+    def get_column_eng(self, column: tuple, dict_header: dict) -> None:
         """
         Get the English column name.
         """
@@ -283,6 +285,7 @@ class ReferenceCompass(object):
             for key, value in headers_eng.items():
                 for column_rus in key:
                     if cell.internal_value == column_rus:
+                        self.original_columns[value] = cell.internal_value
                         dict_header[cell.column_letter] = cell.internal_value, value
 
     @staticmethod
@@ -299,7 +302,8 @@ class ReferenceCompass(object):
                             continue
                         dict_columns[value[1]] = cell.hyperlink.target
                     except AttributeError:
-                        if value[1] == 'inn' and len(str(cell.value)) < 10:
+                        if value[1] == 'inn' and (len(str(cell.value)) < 10 or len(str(cell.value)) == 11 or
+                                                  len(str(cell.value)) > 12):
                             logger.error(f"Error code: error processing in row {index + 1}!")
                             cell.value = f"0{cell.value}"
                             # print(f"in_row_{index + 1}", file=sys.stderr)
