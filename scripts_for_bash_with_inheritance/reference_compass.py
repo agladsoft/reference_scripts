@@ -9,6 +9,7 @@ import pandas as pd
 from typing import Optional
 from datetime import datetime
 from dotenv import load_dotenv
+from validate_inn import is_valid
 from clickhouse_connect import get_client
 from clickhouse_connect.driver import Client
 from openpyxl import Workbook, load_workbook
@@ -122,7 +123,7 @@ class ReferenceCompass(object):
                     except Exception as ex_db:
                         logger.error(f"Failed to execute action. Error is {ex_db}. Type error is {type(ex_db)}. "
                                      f"Data is {dict_data}")
-                        self.save_to_csv(dict_data)
+                        self.save_to_csv(dict_data, str(ex_db))
 
     @staticmethod
     def leave_largest_data_with_dupl_inn(parsed_data: list) -> list:
@@ -168,16 +169,19 @@ class ReferenceCompass(object):
         Change data types or changing values.
         """
         for index, dict_data in enumerate(parsed_data, 2):
+            self.add_new_columns(dict_data)
             for key, value in dict_data.items():
                 with contextlib.suppress(Exception):
-                    if key in ["registration_date"]:
+                    if key in ['inn']:
+                        if not is_valid(value):
+                            self.save_to_csv(dict_data, "Неправильный ИНН")
+                    elif key in ["registration_date"]:
                         dict_data[key] = self.convert_format_date(value) if value else None
                     elif key in ["revenue_at_upload_date_thousand_rubles", "employees_number_at_upload_date",
                                  "net_profit_or_loss_at_upload_date_thousand_rubles"]:
                         dict_data[key] = int(value) if value.isdigit() else None
                     elif value == 'None':
                         dict_data[key] = None
-            self.add_new_columns(dict_data)
             self.get_data_from_cache(dict_data, index)
 
     def add_new_columns(self, dict_data: dict) -> None:
@@ -210,7 +214,8 @@ class ReferenceCompass(object):
         dict_data["dadata_city"] = company_address_data.get("city") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_city"]
         dict_data["dadata_okved_activity_main_type"] = company_data.get("okved") \
-            if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_okved_activity_main_type"]
+            if company_data_branch == "MAIN" or not company_data_branch \
+            else dict_data["dadata_okved_activity_main_type"]
         dict_data["dadata_branch_name"] += f'{company.get("value")}, КПП {company_data.get("kpp", "")}' + '\n' \
             if company_data_branch == "BRANCH" else ''
         dict_data["dadata_branch_address"] += company_address["unrestricted_value"] + '\n' \
@@ -246,7 +251,7 @@ class ReferenceCompass(object):
             except Exception as ex_parse:
                 logger.error(f"Error code: error processing in row {index + 1}! "
                              f"Error is {ex_parse} Data is {dict_data}")
-                self.save_to_csv(dict_data)
+                self.save_to_csv(dict_data, str(ex_parse))
 
     def get_data_from_service_inn(self, dict_data: dict, index: int) -> None:
         """
@@ -259,11 +264,12 @@ class ReferenceCompass(object):
         if response.status_code == 200:
             self.get_data_from_dadata(response.json(), dict_data, index)
 
-    def save_to_csv(self, dict_data: dict) -> None:
+    def save_to_csv(self, dict_data: dict, error: str) -> None:
         df: pd.DataFrame = pd.DataFrame([dict_data])
         index_of_column: int = df.columns.get_loc('original_file_name')
         columns_slice: pd.DataFrame = df.iloc[:, :index_of_column]
         columns_slice.rename(columns=self.original_columns, inplace=True)
+        columns_slice.insert(0, 'Ошибки', error)
         with open(f"{os.path.dirname(self.input_file_path)}/{os.path.basename(self.input_file_path)}_errors.csv", 'a') \
                 as f:
             columns_slice.to_csv(f, header=f.tell() == 0, index=False)
@@ -289,7 +295,7 @@ class ReferenceCompass(object):
                         dict_header[cell.column_letter] = cell.internal_value, value
 
     @staticmethod
-    def get_value_from_cell(index: int, column: tuple, dict_header: dict, dict_columns: dict) -> None:
+    def get_value_from_cell(column: tuple, dict_header: dict, dict_columns: dict) -> None:
         """
         Get a value from a cell, including url.
         """
@@ -302,12 +308,6 @@ class ReferenceCompass(object):
                             continue
                         dict_columns[value[1]] = cell.hyperlink.target
                     except AttributeError:
-                        if value[1] == 'inn' and (len(str(cell.value)) < 10 or len(str(cell.value)) == 11 or
-                                                  len(str(cell.value)) > 12):
-                            logger.error(f"Error code: error processing in row {index + 1}!")
-                            cell.value = f"0{cell.value}"
-                            # print(f"in_row_{index + 1}", file=sys.stderr)
-                            # sys.exit(1)
                         dict_columns[value[1]] = str(cell.value)
 
     def parse_xlsx(self, ws: Worksheet, parsed_data: list) -> None:
@@ -320,7 +320,7 @@ class ReferenceCompass(object):
             if i == 0:
                 self.get_column_eng(column, dict_header)
                 continue
-            self.get_value_from_cell(i, column, dict_header, dict_columns)
+            self.get_value_from_cell(column, dict_header, dict_columns)
             parsed_data.append(dict_columns)
 
     def main(self) -> None:
