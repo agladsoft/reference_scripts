@@ -180,8 +180,6 @@ class ReferenceCompass(object):
                     elif key in ["revenue_at_upload_date_thousand_rubles", "employees_number_at_upload_date",
                                  "net_profit_or_loss_at_upload_date_thousand_rubles"]:
                         dict_data[key] = int(value) if value.isdigit() else None
-                    elif value == 'None':
-                        dict_data[key] = None
             self.get_data_from_cache(dict_data, index)
 
     def add_new_columns(self, dict_data: dict) -> None:
@@ -308,7 +306,7 @@ class ReferenceCompass(object):
                             continue
                         dict_columns[value[1]] = cell.hyperlink.target
                     except AttributeError:
-                        dict_columns[value[1]] = str(cell.value)
+                        dict_columns[value[1]] = str(cell.value) if cell.value is not None else cell.value
 
     def parse_xlsx(self, ws: Worksheet, parsed_data: list) -> None:
         """
