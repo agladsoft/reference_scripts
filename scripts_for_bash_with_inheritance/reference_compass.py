@@ -6,14 +6,24 @@ import requests
 import app_logger
 import contextlib
 import pandas as pd
+from typing import Optional
 from datetime import datetime
 from dotenv import load_dotenv
+from validate_inn import is_valid
 from clickhouse_connect import get_client
 from clickhouse_connect.driver import Client
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
 load_dotenv()
+
+DATE_FORMATS: list = [
+    "%m/%d/%y",
+    "%d.%m.%Y",
+    "%Y-%m-%d %H:%M:%S",
+    "%m/%d/%Y",
+    "%d%b%Y"
+]
 
 list_join_columns: list = ["telephone_number", "email"]
 
@@ -80,6 +90,7 @@ class ReferenceCompass(object):
         self.table_name: str = "cache_dadata"
         self.input_file_path: str = input_file_path
         self.output_folder: str = output_folder
+        self.original_columns: dict = {}
 
     @staticmethod
     def connect_to_db() -> Client:
@@ -112,7 +123,7 @@ class ReferenceCompass(object):
                     except Exception as ex_db:
                         logger.error(f"Failed to execute action. Error is {ex_db}. Type error is {type(ex_db)}. "
                                      f"Data is {dict_data}")
-                        self.save_to_csv(dict_data)
+                        self.save_to_csv(dict_data, str(ex_db))
 
     @staticmethod
     def leave_largest_data_with_dupl_inn(parsed_data: list) -> list:
@@ -143,19 +154,32 @@ class ReferenceCompass(object):
             dict_data["dadata_branch_address"] = None
             dict_data["dadata_branch_region"] = None
 
+    @staticmethod
+    def convert_format_date(date: str) -> Optional[str]:
+        """
+        Convert to a date type.
+        """
+        for date_format in DATE_FORMATS:
+            with contextlib.suppress(ValueError):
+                return str(datetime.strptime(date, date_format).date())
+        return None
+
     def handle_raw_data(self, parsed_data: list) -> None:
         """
         Change data types or changing values.
         """
         for index, dict_data in enumerate(parsed_data, 2):
+            self.add_new_columns(dict_data)
             for key, value in dict_data.items():
                 with contextlib.suppress(Exception):
-                    if key in ["registration_date"]:
-                        dict_data[key] = str(value.date()) if value else None
+                    if key in ['inn']:
+                        if not is_valid(value):
+                            self.save_to_csv(dict_data, "Неправильный ИНН")
+                    elif key in ["registration_date"]:
+                        dict_data[key] = self.convert_format_date(value) if value else None
                     elif key in ["revenue_at_upload_date_thousand_rubles", "employees_number_at_upload_date",
                                  "net_profit_or_loss_at_upload_date_thousand_rubles"]:
                         dict_data[key] = int(value) if value.isdigit() else None
-            self.add_new_columns(dict_data)
             self.get_data_from_cache(dict_data, index)
 
     def add_new_columns(self, dict_data: dict) -> None:
@@ -179,22 +203,27 @@ class ReferenceCompass(object):
             f'{company_data.get("opf").get("short", "") if company_data.get("opf") else ""} ' \
             f'{company_data["name"]["full"]}'.strip() \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_company_name"]
-        dict_data["dadata_address"] = company_address["unrestricted_value"] \
+        dict_data["dadata_address"] = company_address.get("unrestricted_value") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_address"]
-        dict_data["dadata_region"] = company_address_data["region_with_type"] \
+        dict_data["dadata_region"] = company_address_data.get("region_with_type") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_region"]
-        dict_data["dadata_federal_district"] = company_address_data["federal_district"] \
+        dict_data["dadata_federal_district"] = company_address_data.get("federal_district") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_federal_district"]
-        dict_data["dadata_city"] = company_address_data["city"] \
+        dict_data["dadata_city"] = company_address_data.get("city") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_city"]
-        dict_data["dadata_okved_activity_main_type"] = company_data["okved"] \
-            if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_okved_activity_main_type"]
-        dict_data["dadata_branch_name"] += f'{company["value"]}, КПП {company_data.get("kpp", "")}' + '\n' \
+        dict_data["dadata_okved_activity_main_type"] = company_data.get("okved") \
+            if company_data_branch == "MAIN" or not company_data_branch \
+            else dict_data["dadata_okved_activity_main_type"]
+        dict_data["dadata_branch_name"] += f'{company.get("value")}, КПП {company_data.get("kpp", "")}' + '\n' \
             if company_data_branch == "BRANCH" else ''
         dict_data["dadata_branch_address"] += company_address["unrestricted_value"] + '\n' \
             if company_data_branch == "BRANCH" else ''
         dict_data["dadata_branch_region"] += company_address_data["region_with_type"] + '\n' \
             if company_data_branch == "BRANCH" else ''
+        dict_data["dadata_geo_lat"] = company_address_data.get("geo_lat") \
+            if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_geo_lat"]
+        dict_data["dadata_geo_lon"] = company_address_data.get("geo_lon") \
+            if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_geo_lat"]
         dict_data["is_company_name_from_cache"] = is_company_name_from_cache
 
     def get_data_from_dadata(self, dadata_request: list, dict_data: dict, index: int) -> None:
@@ -204,16 +233,23 @@ class ReferenceCompass(object):
         for company in dadata_request[0]:
             try:
                 company_data: dict = company.get("data")
-                company_address: dict = company_data.get("address")
+                company_address: dict = company_data.get("address") or {}
                 company_address_data: dict = company_address.get("data", {})
                 company_data_branch: dict = company_data.get("branch_type")
+                dict_data["dadata_status"] = company_data["state"]["status"]
+                dict_data["dadata_registration_date"] = \
+                    datetime.utcfromtimestamp(company_data["state"]["registration_date"] // 1000).strftime('%Y-%m-%d') \
+                    if company_data["state"]["registration_date"] else None
+                dict_data["dadata_liquidation_date"] = \
+                    datetime.utcfromtimestamp(company_data["state"]["liquidation_date"] // 1000).strftime('%Y-%m-%d') \
+                    if company_data["state"]["liquidation_date"] else None
                 if company_data and company_data["state"]["status"] != "LIQUIDATED":
                     self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
                                             company, dict_data, dadata_request[1])
             except Exception as ex_parse:
                 logger.error(f"Error code: error processing in row {index + 1}! "
                              f"Error is {ex_parse} Data is {dict_data}")
-                self.save_to_csv(dict_data)
+                self.save_to_csv(dict_data, str(ex_parse))
 
     def get_data_from_service_inn(self, dict_data: dict, index: int) -> None:
         """
@@ -226,11 +262,14 @@ class ReferenceCompass(object):
         if response.status_code == 200:
             self.get_data_from_dadata(response.json(), dict_data, index)
 
-    def save_to_csv(self, dict_data: dict) -> None:
+    def save_to_csv(self, dict_data: dict, error: str) -> None:
         df: pd.DataFrame = pd.DataFrame([dict_data])
         index_of_column: int = df.columns.get_loc('original_file_name')
         columns_slice: pd.DataFrame = df.iloc[:, :index_of_column]
-        with open(f"{os.path.dirname(self.input_file_path)}/completed_with_error_data.csv", 'a') as f:
+        columns_slice.rename(columns=self.original_columns, inplace=True)
+        columns_slice.insert(0, 'Ошибки', error)
+        with open(f"{os.path.dirname(self.input_file_path)}/{os.path.basename(self.input_file_path)}_errors.csv", 'a') \
+                as f:
             columns_slice.to_csv(f, header=f.tell() == 0, index=False)
 
     def write_to_json(self, parsed_data: list) -> None:
@@ -242,8 +281,7 @@ class ReferenceCompass(object):
         with open(f"{output_file_path}", 'w', encoding='utf-8') as f:
             json.dump(parsed_data, f, ensure_ascii=False, indent=4)
 
-    @staticmethod
-    def get_column_eng(column: tuple, dict_header: dict) -> None:
+    def get_column_eng(self, column: tuple, dict_header: dict) -> None:
         """
         Get the English column name.
         """
@@ -251,10 +289,11 @@ class ReferenceCompass(object):
             for key, value in headers_eng.items():
                 for column_rus in key:
                     if cell.internal_value == column_rus:
+                        self.original_columns[value] = cell.internal_value
                         dict_header[cell.column_letter] = cell.internal_value, value
 
     @staticmethod
-    def get_value_from_cell(index: int, column: tuple, dict_header: dict, dict_columns: dict) -> None:
+    def get_value_from_cell(column: tuple, dict_header: dict, dict_columns: dict) -> None:
         """
         Get a value from a cell, including url.
         """
@@ -267,11 +306,7 @@ class ReferenceCompass(object):
                             continue
                         dict_columns[value[1]] = cell.hyperlink.target
                     except AttributeError:
-                        if value[1] == 'inn' and len(str(cell.value)) < 10:
-                            logger.error(f"Error code: error processing in row {index + 1}!")
-                            print(f"in_row_{index + 1}", file=sys.stderr)
-                            sys.exit(1)
-                        dict_columns[value[1]] = cell.value
+                        dict_columns[value[1]] = str(cell.value) if cell.value is not None else cell.value
 
     def parse_xlsx(self, ws: Worksheet, parsed_data: list) -> None:
         """
@@ -283,7 +318,7 @@ class ReferenceCompass(object):
             if i == 0:
                 self.get_column_eng(column, dict_header)
                 continue
-            self.get_value_from_cell(i, column, dict_header, dict_columns)
+            self.get_value_from_cell(column, dict_header, dict_columns)
             parsed_data.append(dict_columns)
 
     def main(self) -> None:
