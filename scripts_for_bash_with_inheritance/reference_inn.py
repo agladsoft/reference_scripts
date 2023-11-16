@@ -121,7 +121,7 @@ class ReferenceInn:
     def parse_data(self, i, dict_data, fts):
         company_inn = dict_data.get('company_inn')
         company_name_rus = dict_data.get('company_name')
-        company_name_unified = dict_data.get('company_name_unified')
+        company_name_unified = dict_data.get('company_name_unified').upper()
         with contextlib.suppress(Exception):
             if company_inn:
                 self.join_fts(fts, dict_data, company_inn, 0)
