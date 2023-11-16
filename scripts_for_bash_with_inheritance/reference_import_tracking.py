@@ -46,7 +46,7 @@ class ReferenceImportTracking(object):
             lines = list(csv.DictReader(csvfile))
         logging.info(f'lines type is {type(lines)} and contain {len(lines)} items')
         logging.info(f'First 3 items are: {lines[:3]}')
-        fileds_to_get = ['import_id', 'tracking_seaport', 'tracking_country']
+        fileds_to_get = ['uuid', 'tracking_seaport', 'tracking_country']
         data = []
         try:
             client = get_client(host=os.getenv('HOST'), database=os.getenv('DATABASE'), username=os.getenv('USERNAME_DB'),
