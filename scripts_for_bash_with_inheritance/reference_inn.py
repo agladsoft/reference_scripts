@@ -68,10 +68,13 @@ class ReferenceInn:
             client = get_client(host=get_my_env_var('HOST'), database="fts",
                                 username=get_my_env_var('USERNAME_DB'), password=get_my_env_var('PASSWORD'))
             self.logger.info("Successfully connect to db")
-            fts = client.query("SELECT DISTINCT recipients_tin, name_of_the_contract_holder FROM fts")
+            fts = client.query("SELECT DISTINCT recipients_tin, senders_tin, name_of_the_contract_holder FROM fts")
             # Чтобы проверить, есть ли данные. Так как переменная образуется, но внутри нее могут быть ошибки.
             print(fts.result_rows[0])
-            return {row[0]: row[1] for row in fts.result_rows}
+            fts_recipients_inn: dict = {row[0]: row[2] for row in fts.result_rows}
+            fts_senders_inn: dict = {row[1]: row[2] for row in fts.result_rows}
+            fts_inn: dict = {**fts_recipients_inn, **fts_senders_inn}
+            return fts_inn
         except Exception as ex_connect:
             self.logger.error(f"Error connection to db {ex_connect}. Type error is {type(ex_connect)}.")
             print("error_connect_db", file=sys.stderr)
