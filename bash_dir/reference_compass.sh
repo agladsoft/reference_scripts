@@ -15,7 +15,7 @@ fi
 find "${xls_path}" -maxdepth 1 -type f \( -name "*.xls*" -or -name "*.XLS*" -or -name "*.xml" \) ! -newermt '3 seconds ago' -print0 | while read -d $'\0' file
 do
 
-  if [[ "${file}" == *"error_"* ]];
+  if [[ "${file}" == *"error"* ]];
   then
     continue
   fi

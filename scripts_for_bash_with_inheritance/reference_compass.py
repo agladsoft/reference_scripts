@@ -276,7 +276,7 @@ class ReferenceCompass(object):
         columns_slice: pd.DataFrame = df.iloc[:, :index_of_column]
         columns_slice.rename(columns=self.original_columns, inplace=True)
         columns_slice.insert(0, 'Ошибки', error)
-        with open(f"{os.path.dirname(self.input_file_path)}/{os.path.basename(self.input_file_path)}_errors.csv", 'a') \
+        with open(f"{os.path.dirname(self.input_file_path)}/{os.path.basename(self.input_file_path)}_error.csv", 'a') \
                 as f:
             columns_slice.to_csv(f, header=f.tell() == 0, index=False)
 
@@ -294,11 +294,17 @@ class ReferenceCompass(object):
         Get the English column name.
         """
         for cell in column:
-            for key, value in headers_eng.items():
+            for key, columns_eng in headers_eng.items():
                 for column_rus in key:
-                    if cell.internal_value == column_rus or cell.internal_value == value:
-                        self.original_columns[value] = cell.internal_value
-                        dict_header[cell.column_letter] = cell.internal_value, value
+                    dict_columns_name: dict = {
+                        column_rus: columns_eng,
+                        columns_eng: columns_eng,
+                        'original_file_name': cell.internal_value,
+                        'original_file_parsed_on': cell.internal_value
+                    }
+                    if cell.internal_value in dict_columns_name:
+                        self.original_columns[dict_columns_name[cell.internal_value]] = cell.internal_value
+                        dict_header[cell.column_letter] = cell.internal_value, dict_columns_name[cell.internal_value]
 
     @staticmethod
     def get_value_from_cell(column: tuple, dict_header: dict, dict_columns: dict) -> None:
