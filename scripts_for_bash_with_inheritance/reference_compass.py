@@ -7,6 +7,7 @@ import app_logger
 import contextlib
 import pandas as pd
 from typing import Optional
+from requests import Response
 from datetime import datetime
 from dotenv import load_dotenv
 from validate_inn import is_valid
@@ -203,6 +204,8 @@ class ReferenceCompass(object):
             f'{company_data.get("opf").get("short", "") if company_data.get("opf") else ""} ' \
             f'{company_data["name"]["full"]}'.strip() \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_company_name"]
+        dict_data["dadata_okpo"] = company_data.get("okpo") \
+            if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_okpo"]
         dict_data["dadata_address"] = company_address.get("unrestricted_value") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_address"]
         dict_data["dadata_region"] = company_address_data.get("region_with_type") \
@@ -258,9 +261,12 @@ class ReferenceCompass(object):
         data: dict = {
             "inn": dict_data["inn"]
         }
-        response = requests.post("http://service_inn:8003", json=data)
-        if response.status_code == 200:
+        try:
+            response: Response = requests.post(f"http://10.23.4.203:8003", json=data)
+            response.raise_for_status()
             self.get_data_from_dadata(response.json(), dict_data, index)
+        except requests.exceptions.RequestException as e:
+            logger.error(f"An error occurred during the API request: {str(e)}")
 
     def save_to_csv(self, dict_data: dict, error: str) -> None:
         df: pd.DataFrame = pd.DataFrame([dict_data])
@@ -288,7 +294,7 @@ class ReferenceCompass(object):
         for cell in column:
             for key, value in headers_eng.items():
                 for column_rus in key:
-                    if cell.internal_value == column_rus:
+                    if cell.internal_value == column_rus or cell.internal_value == value:
                         self.original_columns[value] = cell.internal_value
                         dict_header[cell.column_letter] = cell.internal_value, value
 
