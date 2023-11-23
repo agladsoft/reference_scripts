@@ -187,8 +187,10 @@ class ReferenceCompass(object):
         """
         Add new columns.
         """
-        dict_data['original_file_name'] = os.path.basename(self.input_file_path)
-        dict_data['original_file_parsed_on'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        dict_data['original_file_name'] = os.path.basename(self.input_file_path) \
+            if not dict_data.get('original_file_name') else dict_data['original_file_name']
+        dict_data['original_file_parsed_on'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) \
+            if not dict_data.get('original_file_parsed_on') else dict_data['original_file_parsed_on']
         dict_data["dadata_branch_name"] = ''
         dict_data["dadata_branch_address"] = ''
         dict_data["dadata_branch_region"] = ''
@@ -262,7 +264,7 @@ class ReferenceCompass(object):
             "inn": dict_data["inn"]
         }
         try:
-            response: Response = requests.post(f"http://10.23.4.203:8003", json=data)
+            response: Response = requests.post(f"http://service_inn:8003", json=data)
             response.raise_for_status()
             self.get_data_from_dadata(response.json(), dict_data, index)
         except requests.exceptions.RequestException as e:
