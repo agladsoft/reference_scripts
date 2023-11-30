@@ -88,7 +88,8 @@ class ReferenceInn:
         headers_eng = {
             "Компания": "company_name",
             "ИНН": "company_inn",
-            "УНИ-компания": "company_name_unified"
+            "УНИ-компания": "company_name_unified",
+            "Проверен ИНН": "is_checked_inn"
         }
 
         df = pd.read_csv(self.input_file_path, dtype=str)
@@ -125,6 +126,7 @@ class ReferenceInn:
         company_inn = dict_data.get('company_inn')
         company_name_rus = dict_data.get('company_name')
         company_name_unified = dict_data.get('company_name_unified').upper()
+        is_checked_inn = dict_data.get('is_checked_inn')
         with contextlib.suppress(Exception):
             if company_inn:
                 self.join_fts(fts, dict_data, company_inn, 0)
@@ -134,11 +136,13 @@ class ReferenceInn:
                 company_name_unified = re.sub(" +", " ", company_name_unified)
                 company_name_rus = re.sub(" +", " ", company_name_rus)
                 company_name_unified = \
-                    company_name_unified.translate({ord(c): " " for c in r",'!@#$%^&*()[]{};<>?\|`~=_+"})
+                        company_name_unified.translate({ord(c): " " for c in r",'!@#$%^&*()[]{};<>?\|`~=_+"})
                 company_name_rus = \
-                    company_name_rus.translate({ord(c): "" for c in r",'!@#$%^&*()[]{};<>?\|`~=_+"})
+                        company_name_rus.translate({ord(c): "" for c in r",'!@#$%^&*()[]{};<>?\|`~=_+"})
                 dict_data['confidence_rate'] = fuzz.partial_ratio(company_name_unified.upper(),
                                                                   company_name_rus.upper())
+            if is_checked_inn:
+                dict_data['is_checked_inn'] = is_checked_inn.upper() in ['ДА', 'ИСТИНА', 'TRUE']
         dict_data['original_file_name'] = os.path.basename(self.input_file_path)
         dict_data['original_file_parsed_on'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.write_to_json(i, dict_data)
