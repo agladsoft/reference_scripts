@@ -7,6 +7,7 @@ import app_logger
 import contextlib
 import pandas as pd
 from typing import Optional
+from requests import Response
 from datetime import datetime
 from dotenv import load_dotenv
 from validate_inn import is_valid
@@ -175,6 +176,8 @@ class ReferenceCompass(object):
                     if key in ['inn']:
                         if not is_valid(value):
                             self.save_to_csv(dict_data, "Неправильный ИНН")
+                            del parsed_data[index - 2]
+                            break
                     elif key in ["registration_date"]:
                         dict_data[key] = self.convert_format_date(value) if value else None
                     elif key in ["revenue_at_upload_date_thousand_rubles", "employees_number_at_upload_date",
@@ -186,8 +189,10 @@ class ReferenceCompass(object):
         """
         Add new columns.
         """
-        dict_data['original_file_name'] = os.path.basename(self.input_file_path)
-        dict_data['original_file_parsed_on'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        dict_data['original_file_name'] = dict_data['original_file_name'] \
+            if dict_data.get('original_file_name') else os.path.basename(self.input_file_path)
+        dict_data['original_file_parsed_on'] = dict_data['original_file_parsed_on'] \
+            if dict_data.get('original_file_parsed_on') else str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         dict_data["dadata_branch_name"] = ''
         dict_data["dadata_branch_address"] = ''
         dict_data["dadata_branch_region"] = ''
@@ -203,6 +208,8 @@ class ReferenceCompass(object):
             f'{company_data.get("opf").get("short", "") if company_data.get("opf") else ""} ' \
             f'{company_data["name"]["full"]}'.strip() \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_company_name"]
+        dict_data["dadata_okpo"] = company_data.get("okpo") \
+            if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_okpo"]
         dict_data["dadata_address"] = company_address.get("unrestricted_value") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_address"]
         dict_data["dadata_region"] = company_address_data.get("region_with_type") \
@@ -258,9 +265,12 @@ class ReferenceCompass(object):
         data: dict = {
             "inn": dict_data["inn"]
         }
-        response = requests.post("http://service_inn:8003", json=data)
-        if response.status_code == 200:
+        try:
+            response: Response = requests.post("http://service_inn:8003", json=data)
+            response.raise_for_status()
             self.get_data_from_dadata(response.json(), dict_data, index)
+        except requests.exceptions.RequestException as e:
+            logger.error(f"An error occurred during the API request: {str(e)}")
 
     def save_to_csv(self, dict_data: dict, error: str) -> None:
         df: pd.DataFrame = pd.DataFrame([dict_data])
@@ -268,7 +278,7 @@ class ReferenceCompass(object):
         columns_slice: pd.DataFrame = df.iloc[:, :index_of_column]
         columns_slice.rename(columns=self.original_columns, inplace=True)
         columns_slice.insert(0, 'Ошибки', error)
-        with open(f"{os.path.dirname(self.input_file_path)}/{os.path.basename(self.input_file_path)}_errors.csv", 'a') \
+        with open(f"{os.path.dirname(self.input_file_path)}/{os.path.basename(self.input_file_path)}_error.csv", 'a') \
                 as f:
             columns_slice.to_csv(f, header=f.tell() == 0, index=False)
 
@@ -286,11 +296,17 @@ class ReferenceCompass(object):
         Get the English column name.
         """
         for cell in column:
-            for key, value in headers_eng.items():
+            for key, columns_eng in headers_eng.items():
                 for column_rus in key:
-                    if cell.internal_value == column_rus:
-                        self.original_columns[value] = cell.internal_value
-                        dict_header[cell.column_letter] = cell.internal_value, value
+                    dict_columns_name: dict = {
+                        column_rus: columns_eng,
+                        columns_eng: columns_eng,
+                        'original_file_name': cell.internal_value,
+                        'original_file_parsed_on': cell.internal_value
+                    }
+                    if cell.internal_value in dict_columns_name:
+                        self.original_columns[dict_columns_name[cell.internal_value]] = cell.internal_value
+                        dict_header[cell.column_letter] = cell.internal_value, dict_columns_name[cell.internal_value]
 
     @staticmethod
     def get_value_from_cell(column: tuple, dict_header: dict, dict_columns: dict) -> None:
