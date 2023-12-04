@@ -176,6 +176,8 @@ class ReferenceCompass(object):
                     if key in ['inn']:
                         if not is_valid(value):
                             self.save_to_csv(dict_data, "Неправильный ИНН")
+                            del parsed_data[index - 2]
+                            break
                     elif key in ["registration_date"]:
                         dict_data[key] = self.convert_format_date(value) if value else None
                     elif key in ["revenue_at_upload_date_thousand_rubles", "employees_number_at_upload_date",
@@ -187,10 +189,10 @@ class ReferenceCompass(object):
         """
         Add new columns.
         """
-        dict_data['original_file_name'] = os.path.basename(self.input_file_path) \
-            if not dict_data.get('original_file_name') else dict_data['original_file_name']
-        dict_data['original_file_parsed_on'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) \
-            if not dict_data.get('original_file_parsed_on') else dict_data['original_file_parsed_on']
+        dict_data['original_file_name'] = dict_data['original_file_name'] \
+            if dict_data.get('original_file_name') else os.path.basename(self.input_file_path)
+        dict_data['original_file_parsed_on'] = dict_data['original_file_parsed_on'] \
+            if dict_data.get('original_file_parsed_on') else str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         dict_data["dadata_branch_name"] = ''
         dict_data["dadata_branch_address"] = ''
         dict_data["dadata_branch_region"] = ''
@@ -264,7 +266,7 @@ class ReferenceCompass(object):
             "inn": dict_data["inn"]
         }
         try:
-            response: Response = requests.post(f"http://service_inn:8003", json=data)
+            response: Response = requests.post("http://service_inn:8003", json=data)
             response.raise_for_status()
             self.get_data_from_dadata(response.json(), dict_data, index)
         except requests.exceptions.RequestException as e:
