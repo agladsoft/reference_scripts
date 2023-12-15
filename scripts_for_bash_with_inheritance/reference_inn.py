@@ -141,8 +141,9 @@ class ReferenceInn:
                         company_name_rus.translate({ord(c): "" for c in r",'!@#$%^&*()[]{};<>?\|`~=_+"})
                 dict_data['confidence_rate'] = fuzz.partial_ratio(company_name_unified.upper(),
                                                                   company_name_rus.upper())
-            if is_checked_inn:
-                dict_data['is_checked_inn'] = is_checked_inn.upper() in ['ДА', 'ИСТИНА', 'TRUE']
+            if "is_checked_inn" in dict_data:
+                dict_data['is_checked_inn'] = is_checked_inn is not None \
+                                              and is_checked_inn.upper() in ['ДА', 'ИСТИНА', 'TRUE']
         dict_data['original_file_name'] = os.path.basename(self.input_file_path)
         dict_data['original_file_parsed_on'] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.write_to_json(i, dict_data)
