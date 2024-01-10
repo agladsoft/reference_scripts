@@ -4,6 +4,7 @@ import sys
 import json
 import logging
 import datetime
+from __init__ import *
 from dotenv import load_dotenv
 from clickhouse_connect import get_client
 
@@ -37,6 +38,7 @@ class ReferenceImportTracking(object):
         except Exception as ex:
             logging.error(f"Error getting data from database. Index is {index}. Data is {seaport} and {country}. "
                           f"Exception is {ex}")
+            telegram(f'Reference_import_tracking : Ошибка при получение информации из базы данных. Индекс строки {index}.Ошибка {ex}')
             print("9", file=sys.stderr)
             sys.exit(9)
 
@@ -54,6 +56,7 @@ class ReferenceImportTracking(object):
         except Exception as ex:
             logging.error(f"Error connection to database. Exception is {ex}")
             print("8", file=sys.stderr)
+            telegram(f'ошибка при подключение к базе данных.Файл : {file_path}')
             sys.exit(8)
         for index, line in enumerate(lines):
             new_line = {k: v.strip() for k, v in line.items() if k in fileds_to_get}
@@ -62,6 +65,7 @@ class ReferenceImportTracking(object):
             else:
                 client.close()
                 print(f"7_in_row_{index + 1}", file=sys.stderr)
+                telegram(f'Небыли получены данные из таблицы reference_region. Файл : {file_path}. Код ошибки 7')
                 sys.exit(7)
         client.close()
         return data

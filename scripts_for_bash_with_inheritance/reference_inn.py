@@ -6,6 +6,7 @@ import logging
 import contextlib
 import numpy as np
 import pandas as pd
+from __init__ import *
 from fuzzywuzzy import fuzz
 from datetime import datetime
 from dotenv import load_dotenv
@@ -18,15 +19,15 @@ from concurrent.futures import ThreadPoolExecutor
 load_dotenv()
 
 
-def get_my_env_var(var_name: str) -> str:
-    try:
-        return os.environ[var_name]
-    except KeyError as e:
-        raise MissingEnvironmentVariable(f"{var_name} does not exist") from e
-
-
-class MissingEnvironmentVariable(Exception):
-    pass
+# def get_my_env_var(var_name: str) -> str:
+#     try:
+#         return os.environ[var_name]
+#     except KeyError as e:
+#         raise MissingEnvironmentVariable(f"{var_name} does not exist") from e
+#
+#
+# class MissingEnvironmentVariable(Exception):
+#     pass
 
 
 class CustomAdapter(logging.LoggerAdapter):
@@ -78,6 +79,7 @@ class ReferenceInn:
         except Exception as ex_connect:
             self.logger.error(f"Error connection to db {ex_connect}. Type error is {type(ex_connect)}.")
             print("error_connect_db", file=sys.stderr)
+            telegram(f'Нет подключения к базе данных. Файл : {self.input_file_path}')
             sys.exit(1)
 
     @staticmethod

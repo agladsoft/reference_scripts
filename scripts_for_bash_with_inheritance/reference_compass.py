@@ -6,6 +6,7 @@ import requests
 import app_logger
 import contextlib
 import pandas as pd
+from __init__ import *
 from typing import Optional
 from requests import Response
 from datetime import datetime
@@ -75,15 +76,15 @@ headers_eng: dict = {
 }
 
 
-def get_my_env_var(var_name: str) -> str:
-    try:
-        return os.environ[var_name]
-    except KeyError as e:
-        raise MissingEnvironmentVariable(f"{var_name} does not exist") from e
-
-
-class MissingEnvironmentVariable(Exception):
-    pass
+# def get_my_env_var(var_name: str) -> str:
+#     try:
+#         return os.environ[var_name]
+#     except KeyError as e:
+#         raise MissingEnvironmentVariable(f"{var_name} does not exist") from e
+#
+#
+# class MissingEnvironmentVariable(Exception):
+#     pass
 
 
 class ReferenceCompass(object):
@@ -105,6 +106,7 @@ class ReferenceCompass(object):
         except Exception as ex_connect:
             logger.error(f"Error connection to db {ex_connect}. Type error is {type(ex_connect)}.")
             print("error_connect_db", file=sys.stderr)
+            telegram(f'Нет подключения к базе данных reference_compass')
             sys.exit(1)
         return client
 
@@ -124,6 +126,7 @@ class ReferenceCompass(object):
                     except Exception as ex_db:
                         logger.error(f"Failed to execute action. Error is {ex_db}. Type error is {type(ex_db)}. "
                                      f"Data is {dict_data}")
+                        telegram(f'Не удалось выполнить действия в файле {self.input_file_path}. Ошибка {ex_db}, Data : {dict_data}')
                         self.save_to_csv(dict_data, str(ex_db))
 
     @staticmethod
@@ -256,6 +259,7 @@ class ReferenceCompass(object):
             except Exception as ex_parse:
                 logger.error(f"Error code: error processing in row {index + 1}! "
                              f"Error is {ex_parse} Data is {dict_data}")
+                telegram(f'Ошибка в строке {index + 1}, Файл: {self.input_file_path}')
                 self.save_to_csv(dict_data, str(ex_parse))
 
     def get_data_from_service_inn(self, dict_data: dict, index: int) -> None:
@@ -362,4 +366,5 @@ if __name__ == "__main__":
     except Exception as ex:
         logger.error(f"Error code: unknown error - {ex}!")
         print("unknown_error", file=sys.stderr)
+        telegram(f'Ошибка при обработке файла {sys.argv[1]}, Ошибка: {ex}')
         sys.exit(1)
