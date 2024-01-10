@@ -2,6 +2,7 @@ import os
 import requests
 from notifiers import get_notifier
 
+
 LIST_MONTHS: list = [
     "январь",
     "февраль",
