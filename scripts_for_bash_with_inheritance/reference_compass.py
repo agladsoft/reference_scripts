@@ -259,7 +259,7 @@ class ReferenceCompass(object):
             except Exception as ex_parse:
                 logger.error(f"Error code: error processing in row {index + 1}! "
                              f"Error is {ex_parse} Data is {dict_data}")
-                telegram(f'Ошибка в строке {index + 1}, Файл: {self.input_file_path}')
+                telegram(f'Ошибка в строке {index}, Файл: {self.input_file_path}')
                 self.save_to_csv(dict_data, str(ex_parse))
 
     def get_data_from_service_inn(self, dict_data: dict, index: int) -> None:
