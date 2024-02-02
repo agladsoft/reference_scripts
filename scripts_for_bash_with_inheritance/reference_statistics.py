@@ -66,17 +66,18 @@ def process(input_file_path):
                 columns[key].append(value)
     zip_list = list(columns)
     month = zip_list[0].rsplit(' ', 1)
-    if month[0].strip() in month_list:
+    if month[0].upper().strip() in month_list:
         month_digit = month_list.index(month[0].strip()) + 1
     context['month'] = month_digit
     context['year'] = int(month[1])
     for (enum, ship_name), ship_name_number in zip(enumerate(columns[zip_list[0]]), columns[zip_list[1]]):
         number_ship = re.findall("\d{1,3}[.][\W][A-Z]+", ship_name_number)
         try:
-            if ship_name == 'Название судна' or number_ship:
+            if ship_name.upper() == 'НАЗВАНИЕ СУДНА' or number_ship:
                 for column in zip_list:
-                    start = columns[zip_list[0]].index("Линия/Агент")
-                    end = columns[zip_list[0]].index(" Итого шт.")
+                    list_values_upper = [x.upper() for x in columns[zip_list[0]]]
+                    start = list_values_upper.index("ЛИНИЯ/АГЕНТ")
+                    end = list_values_upper.index(" ИТОГО ШТ.")
                     list_index = [i + 5 for i, item in enumerate(columns[column][enum + start:enum + end - 1]) if re.search(
                         '\d', item)]
                     for enum_for_value in list_index:
