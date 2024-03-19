@@ -26,6 +26,22 @@ with open(os.path.abspath(sys.argv[1])) as f:
             columns[k].append(v)  # append the value into the appropriate list
 
 
+def get_indices(x: list, value: int) -> list:
+    indices = list()
+    i = 0
+    while True:
+        try:
+            # find an occurrence of value and update i to that index
+            i = x.index(value, i)
+            # add i to the list
+            indices.append(i)
+            # advance i by 1
+            i += 1
+        except ValueError as e:
+            break
+    return indices
+
+
 def merge_two_dicts(x, y):
     z = x.copy()  # start with keys and values of x
     z.update(y)  # modifies z with keys and values of y
@@ -70,19 +86,26 @@ def process(input_file_path):
         month_digit = month_list.index(month[0].strip()) + 1
     context['month'] = month_digit
     context['year'] = int(month[1])
+
+    counter = 0
+    list_values_upper = [x.upper() for x in columns[zip_list[0]]]
+    indices_line = get_indices(list_values_upper, "ЛИНИЯ/АГЕНТ")
+    indices_summ = get_indices(list_values_upper, " ИТОГО ШТ.")
     for (enum, ship_name), ship_name_number in zip(enumerate(columns[zip_list[0]]), columns[zip_list[1]]):
-        number_ship = re.findall("\d{1,3}[.][\W][A-Z]+", ship_name_number)
+        number_ship = re.findall(r"\d{1,3}[.]\W[A-Z]+", ship_name_number)
         try:
             if ship_name.upper() == 'НАЗВАНИЕ СУДНА' or number_ship:
                 for column in zip_list:
-                    list_values_upper = [x.upper() for x in columns[zip_list[0]]]
-                    start = list_values_upper.index("ЛИНИЯ/АГЕНТ")
-                    end = list_values_upper.index(" ИТОГО ШТ.")
-                    list_index = [i + 5 for i, item in enumerate(columns[column][enum + start:enum + end - 1]) if re.search(
-                        '\d', item)]
+                    start = indices_line[counter]
+                    end = indices_summ[counter]
+                    list_index = [
+                        i + len(columns[zip_list[0]][enum:start+1])
+                        for i, item in enumerate(columns[column][start + 1:end])
+                        if re.search(r'\d', item)
+                    ]
                     for enum_for_value in list_index:
                         parse_column(parsed_data, enum, zip_list[0], column, enum_for_value)
-                columns[zip_list[0]] = columns[zip_list[0]][end+2:]
+                counter += 1
         except IndexError:
             continue
 
