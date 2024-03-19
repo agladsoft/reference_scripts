@@ -52,8 +52,8 @@ def parse_column(parsed_data, enum, column0, column1, enum_for_value):
     with contextlib.suppress(Exception):
         date_full = re.findall('(?<=\().*?(?=\))', columns[column1][enum])
         ship_name = columns[column1][enum].replace(f"({date_full[0]})", "").strip()
-        ship_name = ship_name.split()[1:]
-        context['ship_name'] = " ".join(ship_name) if ship_name else columns[column1][enum]
+        ship_name = re.split(r'(\d+)[.]', ship_name)[-1]
+        context['ship_name'] = ship_name.strip() or columns[column1][enum]
         date = date_full[0].split("-")
         context['date_arrive'] = date[0].strip()
         context['date_leave'] = date[1].strip()
@@ -92,7 +92,7 @@ def process(input_file_path):
     indices_line = get_indices(list_values_upper, "ЛИНИЯ/АГЕНТ")
     indices_summ = get_indices(list_values_upper, " ИТОГО ШТ.")
     for (enum, ship_name), ship_name_number in zip(enumerate(columns[zip_list[0]]), columns[zip_list[1]]):
-        number_ship = re.findall(r"\d{1,3}[.]\W[A-Z]+", ship_name_number)
+        number_ship = re.findall(r"\d{1,3}[.].[A-Z]+", ship_name_number)
         try:
             if ship_name.upper() == 'НАЗВАНИЕ СУДНА' or number_ship:
                 for column in zip_list:
