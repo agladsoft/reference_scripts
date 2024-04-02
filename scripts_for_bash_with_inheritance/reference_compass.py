@@ -236,6 +236,21 @@ class ReferenceCompass(object):
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_geo_lat"]
         dict_data["is_company_name_from_cache"] = is_company_name_from_cache
 
+    @staticmethod
+    def get_status(dict_data: dict, company_data: dict) -> str:
+        """
+        Get the status of the company.
+        """
+        dict_data["dadata_status"] = company_data["state"]["status"]
+        dict_data["dadata_registration_date"] = \
+            datetime.utcfromtimestamp(
+                company_data["state"]["registration_date"] // 1000
+            ).strftime('%Y-%m-%d') if company_data["state"]["registration_date"] else None
+        dict_data["dadata_liquidation_date"] = \
+            datetime.utcfromtimestamp(
+                company_data["state"]["liquidation_date"] // 1000
+            ).strftime('%Y-%m-%d') if company_data["state"]["liquidation_date"] else None
+
     def get_data_from_dadata(self, dadata_request: list, dict_data: dict, index: int) -> None:
         """
         Get data from dadata.
@@ -246,14 +261,10 @@ class ReferenceCompass(object):
                 company_address: dict = company_data.get("address") or {}
                 company_address_data: dict = company_address.get("data", {})
                 company_data_branch: dict = company_data.get("branch_type")
-                if company_data_branch == "MAIN" or company_data.get("type") == 'INDIVIDUAL':
-                    dict_data["dadata_status"] = company_data["state"]["status"]
-                    dict_data["dadata_registration_date"] = \
-                        datetime.utcfromtimestamp(company_data["state"]["registration_date"] // 1000).strftime('%Y-%m-%d') \
-                        if company_data["state"]["registration_date"] else None
-                    dict_data["dadata_liquidation_date"] = \
-                        datetime.utcfromtimestamp(company_data["state"]["liquidation_date"] // 1000).strftime('%Y-%m-%d') \
-                        if company_data["state"]["liquidation_date"] else None
+                if company_data_branch == "MAIN":
+                    self.get_status(dict_data, company_data)
+                elif company_data.get("type") == 'INDIVIDUAL' and not dict_data.get("dadata_status"):
+                    self.get_status(dict_data, company_data)
                 if company_data and company_data["state"]["status"] != "LIQUIDATED":
                     self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
                                             company, dict_data, dadata_request[1])
@@ -268,7 +279,7 @@ class ReferenceCompass(object):
         Connect to dadata.
         """
         data: dict = {
-            "inn": "010200416242"
+            "inn": dict_data["inn"]
         }
         try:
             response: Response = requests.post("http://service_inn:8003", json=data)
