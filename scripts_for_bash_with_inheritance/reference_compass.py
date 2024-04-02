@@ -246,13 +246,14 @@ class ReferenceCompass(object):
                 company_address: dict = company_data.get("address") or {}
                 company_address_data: dict = company_address.get("data", {})
                 company_data_branch: dict = company_data.get("branch_type")
-                dict_data["dadata_status"] = company_data["state"]["status"]
-                dict_data["dadata_registration_date"] = \
-                    datetime.utcfromtimestamp(company_data["state"]["registration_date"] // 1000).strftime('%Y-%m-%d') \
-                    if company_data["state"]["registration_date"] else None
-                dict_data["dadata_liquidation_date"] = \
-                    datetime.utcfromtimestamp(company_data["state"]["liquidation_date"] // 1000).strftime('%Y-%m-%d') \
-                    if company_data["state"]["liquidation_date"] else None
+                if company_data_branch == "MAIN":
+                    dict_data["dadata_status"] = company_data["state"]["status"]
+                    dict_data["dadata_registration_date"] = \
+                        datetime.utcfromtimestamp(company_data["state"]["registration_date"] // 1000).strftime('%Y-%m-%d') \
+                        if company_data["state"]["registration_date"] else None
+                    dict_data["dadata_liquidation_date"] = \
+                        datetime.utcfromtimestamp(company_data["state"]["liquidation_date"] // 1000).strftime('%Y-%m-%d') \
+                        if company_data["state"]["liquidation_date"] else None
                 if company_data and company_data["state"]["status"] != "LIQUIDATED":
                     self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
                                             company, dict_data, dadata_request[1])
