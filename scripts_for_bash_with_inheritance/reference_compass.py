@@ -261,7 +261,7 @@ class ReferenceCompass(object):
                 company_address: dict = company_data.get("address") or {}
                 company_address_data: dict = company_address.get("data", {})
                 company_data_branch: dict = company_data.get("branch_type")
-                if company_data_branch == "MAIN":
+                if company_data_branch == "MAIN" and not dict_data.get("dadata_status"):
                     self.get_status(dict_data, company_data)
                 elif company_data.get("type") == 'INDIVIDUAL' and not dict_data.get("dadata_status"):
                     self.get_status(dict_data, company_data)
