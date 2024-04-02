@@ -271,7 +271,7 @@ class ReferenceCompass(object):
             "inn": "010200416242"
         }
         try:
-            response: Response = requests.post("http://10.23.4.196:8003", json=data)
+            response: Response = requests.post("http://service_inn:8003", json=data)
             response.raise_for_status()
             self.get_data_from_dadata(response.json(), dict_data, index)
         except requests.exceptions.RequestException as e:
@@ -355,7 +355,7 @@ class ReferenceCompass(object):
             self.parse_xlsx(ws, parsed_data)
             self.handle_raw_data(parsed_data)
             parsed_data: list = self.leave_largest_data_with_dupl_inn(parsed_data)
-            # self.change_data_in_db(parsed_data)
+            self.change_data_in_db(parsed_data)
             self.write_to_json(parsed_data)
             logger.info("The script has completed its work")
 
