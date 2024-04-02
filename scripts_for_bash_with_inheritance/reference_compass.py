@@ -246,7 +246,7 @@ class ReferenceCompass(object):
                 company_address: dict = company_data.get("address") or {}
                 company_address_data: dict = company_address.get("data", {})
                 company_data_branch: dict = company_data.get("branch_type")
-                if company_data_branch == "MAIN":
+                if company_data_branch == "MAIN" or company_data.get("type") == 'INDIVIDUAL':
                     dict_data["dadata_status"] = company_data["state"]["status"]
                     dict_data["dadata_registration_date"] = \
                         datetime.utcfromtimestamp(company_data["state"]["registration_date"] // 1000).strftime('%Y-%m-%d') \
@@ -268,10 +268,10 @@ class ReferenceCompass(object):
         Connect to dadata.
         """
         data: dict = {
-            "inn": dict_data["inn"]
+            "inn": "010200416242"
         }
         try:
-            response: Response = requests.post("http://service_inn:8003", json=data)
+            response: Response = requests.post("http://10.23.4.196:8003", json=data)
             response.raise_for_status()
             self.get_data_from_dadata(response.json(), dict_data, index)
         except requests.exceptions.RequestException as e:
