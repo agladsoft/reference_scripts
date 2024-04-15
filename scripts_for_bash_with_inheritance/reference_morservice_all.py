@@ -121,7 +121,7 @@ class ReferenceMorService(object):
     def get_tonnage(current_line: list, indexes: tuple) -> float:
         tonnage = current_line[indexes[1] - 1:indexes[1] + 2]
         tonnage = tonnage[1]
-        return float(0) if not tonnage else float(tonnage)
+        return None if not tonnage else float(tonnage)
 
     def parse_data(self, lines: list) -> list:
         """
