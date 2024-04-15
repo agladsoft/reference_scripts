@@ -10,7 +10,6 @@ from typing import Dict, Union, Tuple
 
 
 class ReferenceMorService(object):
-
     dict_columns_position: Dict[str, Tuple[str, Union[None, int]]] = {
         "export": ("Экспорт", None),
         "import": ("Импорт", None),
@@ -72,10 +71,11 @@ class ReferenceMorService(object):
         for current_line, next_line in self.pairwise(lines):
             for column in self.dict_columns_position:
                 index_direction: int = current_line.index(self.dict_columns_position[column][0])
-                list_indices: list = [idx for idx, value in enumerate(next_line) if value == str(float(context["year"]))]
+                list_indices: list = [idx for idx, value in enumerate(next_line) if
+                                      value == str(float(context["year"]))]
                 self.dict_columns_position[column] = (
                     self.dict_columns_position[column][0],
-                    min(list_indices, key=lambda x: abs(index_direction - abs(x))) # находим ближайшее число из списка
+                    min(list_indices, key=lambda x: abs(index_direction - abs(x)))  # находим ближайшее число из списка
                     # к переменной index_direction
                 )
 
@@ -109,12 +109,19 @@ class ReferenceMorService(object):
                     "is_empty": current_line[1] == 'порожние',
                     "container_type": 'REF' if current_line[1] == 'из них реф.' else None,
                     "teu": self.parse_float(current_line[indexes[1]]) - self.parse_float(next_line[indexes[1]])
-                        if current_line[1] == 'груженые' and current_line[indexes[1]] and next_line[indexes[1]]
-                        else self.parse_float(current_line[indexes[1]]),
+                    if current_line[1] == 'груженые' and current_line[indexes[1]] and next_line[indexes[1]]
+                    else self.parse_float(current_line[indexes[1]]),
                     "original_file_name": os.path.basename(self.input_file_path),
-                    "original_file_parsed_on": str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                    "original_file_parsed_on": str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                    'tonnage': self.get_tonnage(current_line, indexes)
                 }
                 parsed_data.append(self.merge_two_dicts(context, parsed_record))
+
+    @staticmethod
+    def get_tonnage(current_line: list, indexes: tuple) -> float:
+        tonnage = current_line[indexes[1] - 1:indexes[1] + 2]
+        tonnage = tonnage[1]
+        return float(0) if not tonnage else float(tonnage)
 
     def parse_data(self, lines: list) -> list:
         """
@@ -136,13 +143,12 @@ class ReferenceMorService(object):
                 elif "порт" in data.lower() and "итого" not in data.lower() and len(list(filter(None, line))) == 1:
                     context["port"] = data
                 elif "тыс.тонн" in data:
-                    self._get_data_from_direction(line[0], lines[i + 2:i + 6], context, parsed_data)
+                    self._get_data_from_direction(line[0], lines[i:i + 6], context, parsed_data)
         return parsed_data
 
     @staticmethod
     def remove_extra_lines(parsed_data: list) -> list:
         return [line for line in parsed_data if "Итого" not in line["terminal_operator"]]
-
 
     def write_to_json(self, parsed_data: list) -> None:
         """
