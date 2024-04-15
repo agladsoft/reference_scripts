@@ -101,7 +101,8 @@ class ReferenceMorService(object):
         :param parsed_data: Отпарсенные данные.
         :return:
         """
-        for current_line, next_line in self.pairwise(lines):
+        tonnage = lines[:1][0]
+        for current_line, next_line in self.pairwise(lines[2:]):
             for column, indexes in self.dict_columns_position.items():
                 parsed_record: dict = {
                     "direction": column,
@@ -113,12 +114,13 @@ class ReferenceMorService(object):
                     else self.parse_float(current_line[indexes[1]]),
                     "original_file_name": os.path.basename(self.input_file_path),
                     "original_file_parsed_on": str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                    'tonnage': self.get_tonnage(current_line, indexes)
+                    'tonnage': self.get_tonnage(tonnage, indexes)
                 }
                 parsed_data.append(self.merge_two_dicts(context, parsed_record))
 
     @staticmethod
     def get_tonnage(current_line: list, indexes: tuple) -> float:
+        """"""
         tonnage = current_line[indexes[1] - 1:indexes[1] + 2]
         tonnage = tonnage[1]
         return None if not tonnage else float(tonnage)
