@@ -114,13 +114,16 @@ class ReferenceMorService(object):
                     else self.parse_float(current_line[indexes[1]]),
                     "original_file_name": os.path.basename(self.input_file_path),
                     "original_file_parsed_on": str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                    'tonnage': None if current_line[1] == 'груженые' else self.get_tonnage(tonnage, indexes)
+                    'tonnage': self.get_tonnage(tonnage, indexes) if current_line[1] == 'груженые' else None
                 }
                 parsed_data.append(self.merge_two_dicts(context, parsed_record))
 
     @staticmethod
     def get_tonnage(current_line: list, indexes: tuple) -> float:
-        """"""
+        """Получение информации о тыс.тонн из строки.
+        :param current_line: Список строк.
+        :param indexes: Индексы.
+        :return: Тыс.тонн. или None."""
         tonnage = current_line[indexes[1] - 1:indexes[1] + 2]
         tonnage = tonnage[1]
         return None if not tonnage else float(tonnage)
