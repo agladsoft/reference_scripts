@@ -114,7 +114,7 @@ class ReferenceMorService(object):
                     else self.parse_float(current_line[indexes[1]]),
                     "original_file_name": os.path.basename(self.input_file_path),
                     "original_file_parsed_on": str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                    'tonnage': self.get_tonnage(tonnage, indexes)
+                    'tonnage': None if current_line[1] == 'порожние' else self.get_tonnage(tonnage, indexes)
                 }
                 parsed_data.append(self.merge_two_dicts(context, parsed_record))
 
