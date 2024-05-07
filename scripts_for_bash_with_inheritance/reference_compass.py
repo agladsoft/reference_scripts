@@ -196,6 +196,7 @@ class ReferenceCompass(object):
             if dict_data.get('original_file_name') else os.path.basename(self.input_file_path)
         dict_data['original_file_parsed_on'] = dict_data['original_file_parsed_on'] \
             if dict_data.get('original_file_parsed_on') else str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        dict_data["last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         dict_data["dadata_branch_name"] = ''
         dict_data["dadata_branch_address"] = ''
         dict_data["dadata_branch_region"] = ''
