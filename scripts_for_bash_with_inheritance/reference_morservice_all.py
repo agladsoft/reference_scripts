@@ -126,7 +126,7 @@ class ReferenceMorService(object):
         :return: Тыс.тонн. или None."""
         tonnage = current_line[indexes[1] - 1:indexes[1] + 2]
         tonnage = tonnage[1]
-        return None if not tonnage else float(tonnage)
+        return float(tonnage) if tonnage else None
 
     def parse_data(self, lines: list) -> list:
         """
@@ -171,7 +171,22 @@ class ReferenceMorService(object):
         :return: Данные csv-файла в виде списка.
         """
         with open(self.input_file_path, newline='') as csvfile:
-            return list(csv.reader(csvfile))
+            reader = csv.reader(csvfile)
+            data = list(reader)
+
+            if not data:
+                return data  # Return if data is empty
+            columns = list(zip(*data))
+
+            # Filter out columns that are empty excluding the header
+            filtered_columns = [
+                col for col in columns if any(cell.strip() for cell in col[1:])
+            ]
+
+            # Transpose the data back to the original format
+            filtered_data = list(zip(*filtered_columns))
+
+            return [list(row) for row in filtered_data]
 
     def main(self) -> None:
         """
@@ -184,5 +199,6 @@ class ReferenceMorService(object):
         self.write_to_json(parsed_data)
 
 
-reference_morservice_all: ReferenceMorService = ReferenceMorService(sys.argv[1], sys.argv[2])
-reference_morservice_all.main()
+if __name__ == "__main__":
+    reference_morservice_all: ReferenceMorService = ReferenceMorService(sys.argv[1], sys.argv[2])
+    reference_morservice_all.main()
