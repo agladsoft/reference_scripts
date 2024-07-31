@@ -1,6 +1,6 @@
 #!/bin/bash
 
-xls_path="/home/ruscon/sambashare/unzipping/reference/reference_stations/"
+xls_path="${XL_IDP_PATH_UNZIPPING_REFERENCE}/reference_stations/"
 
 csv_path="${xls_path}"/csv
 if [ ! -d "$csv_path" ]; then
