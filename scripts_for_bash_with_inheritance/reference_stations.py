@@ -29,7 +29,7 @@ class ReferenceSparDeck(object):
         """
         The main function where we read the Excel file and write the file to json.
         """
-        df: DataFrame = pd.read_excel(self.input_file_path, dtype=str)
+        df: DataFrame = pd.read_csv(self.input_file_path, dtype=str)
         df = df.dropna(axis=0, how='all')
         df = df.rename(columns=HEADERS_ENG)
         df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
