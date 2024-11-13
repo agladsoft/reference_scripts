@@ -173,10 +173,12 @@ class ReferenceCompass(object):
         Change data types or changing values.
         """
         for index, dict_data in enumerate(parsed_data, 2):
+            logger.info(f"Processing in row {index}. INN is {dict_data['inn']}. Data is {dict_data}")
             self.add_new_columns(dict_data)
             for key, value in dict_data.items():
                 with contextlib.suppress(Exception):
                     if key in ['inn']:
+                        logger.info(f"INN - {value}. Index - {index}")
                         if not is_valid(value):
                             self.save_to_csv(dict_data, "Неправильный ИНН")
                             del parsed_data[index - 2]
@@ -269,10 +271,12 @@ class ReferenceCompass(object):
                 if company_data and company_data["state"]["status"] != "LIQUIDATED":
                     self.add_dadata_columns(company_data, company_address, company_address_data, company_data_branch,
                                             company, dict_data, dadata_request[1])
+                logger.info(f"Processed in row {index}. INN is {dict_data['inn']}. Data is {dict_data}")
             except Exception as ex_parse:
-                logger.error(f"Error code: error processing in row {index + 1}! "
-                             f"Error is {ex_parse} Data is {dict_data}")
-                telegram(f'Ошибка в строке {index}, Файл: {self.input_file_path}')
+                logger.error(
+                    f"Error code: error processing in row {index}! Error is {ex_parse}. Data is {dict_data}"
+                )
+                telegram(f'Ошибка в строке {index}, ИНН - {dict_data["inn"]}, Файл: {self.input_file_path}')
                 self.save_to_csv(dict_data, str(ex_parse))
 
     def get_data_from_service_inn(self, dict_data: dict, index: int) -> None:
