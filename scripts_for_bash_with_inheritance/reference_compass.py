@@ -1,8 +1,6 @@
-import os
 import sys
 import json
 import warnings
-import requests
 import app_logger
 import contextlib
 import pandas as pd
@@ -106,7 +104,7 @@ class ReferenceCompass(object):
         except Exception as ex_connect:
             logger.error(f"Error connection to db {ex_connect}. Type error is {type(ex_connect)}.")
             print("error_connect_db", file=sys.stderr)
-            telegram(f'Нет подключения к базе данных reference_compass')
+            telegram('Нет подключения к базе данных reference_compass')
             sys.exit(1)
         return client
 
@@ -126,7 +124,10 @@ class ReferenceCompass(object):
                     except Exception as ex_db:
                         logger.error(f"Failed to execute action. Error is {ex_db}. Type error is {type(ex_db)}. "
                                      f"Data is {dict_data}")
-                        telegram(f'Не удалось выполнить действия в файле {self.input_file_path}. Ошибка {ex_db}, Data : {dict_data}')
+                        telegram(
+                            f'Не удалось выполнить действия в файле {self.input_file_path}. '
+                            f'Ошибка {ex_db}, Data: {dict_data}'
+                        )
                         self.save_to_csv(dict_data, str(ex_db))
 
     @staticmethod
@@ -172,23 +173,27 @@ class ReferenceCompass(object):
         """
         Change data types or changing values.
         """
-        for index, dict_data in enumerate(parsed_data, 2):
-            logger.info(f"Processing in row {index}. INN is {dict_data['inn']}. Data is {dict_data}")
+        for index in range(len(parsed_data) - 1, -1, -1):  # Итерация с конца списка
+            dict_data = parsed_data[index]
+            logger.info(f"Processing in row {index + 2}. INN is {dict_data['inn']}. Data is {dict_data}")
             self.add_new_columns(dict_data)
+
             for key, value in dict_data.items():
                 with contextlib.suppress(Exception):
-                    if key in ['inn']:
-                        logger.info(f"INN - {value}. Index - {index}")
+                    if key == 'inn':
+                        logger.info(f"INN - {value}. Index - {index + 2}")
                         if not is_valid(value):
                             self.save_to_csv(dict_data, "Неправильный ИНН")
-                            del parsed_data[index - 2]
+                            del parsed_data[index]  # Удаляем текущий элемент
                             break
-                    elif key in ["registration_date"]:
+                    elif key == "registration_date":
                         dict_data[key] = self.convert_format_date(value) if value else None
                     elif key in ["revenue_at_upload_date_thousand_rubles", "employees_number_at_upload_date",
                                  "net_profit_or_loss_at_upload_date_thousand_rubles"]:
                         dict_data[key] = int(value) if value.isdigit() else None
-            self.get_data_from_cache(dict_data, index)
+            else:
+                # Только если не было break в предыдущем цикле, вызываем метод для получения данных из кеша
+                self.get_data_from_cache(dict_data, index + 2)
 
     def add_new_columns(self, dict_data: dict) -> None:
         """
@@ -240,7 +245,7 @@ class ReferenceCompass(object):
         dict_data["is_company_name_from_cache"] = is_company_name_from_cache
 
     @staticmethod
-    def get_status(dict_data: dict, company_data: dict) -> str:
+    def get_status(dict_data: dict, company_data: dict) -> None:
         """
         Get the status of the company.
         """
