@@ -6,7 +6,8 @@ import logging
 import contextlib
 import numpy as np
 import pandas as pd
-from __init__ import *
+from src.scripts_for_bash_with_inheritance.__init__ import *
+from src.scripts_for_bash_with_inheritance.app_logger import logger
 from fuzzywuzzy import fuzz
 from datetime import datetime
 from dotenv import load_dotenv
@@ -15,19 +16,7 @@ from clickhouse_connect import get_client
 from deep_translator import GoogleTranslator
 from concurrent.futures import ThreadPoolExecutor
 
-
 load_dotenv()
-
-
-# def get_my_env_var(var_name: str) -> str:
-#     try:
-#         return os.environ[var_name]
-#     except KeyError as e:
-#         raise MissingEnvironmentVariable(f"{var_name} does not exist") from e
-#
-#
-# class MissingEnvironmentVariable(Exception):
-#     pass
 
 
 class CustomAdapter(logging.LoggerAdapter):
@@ -41,24 +30,24 @@ class ReferenceInn:
         self.input_file_path = os.path.abspath(input_file)
         self.output_folder = output_folder
         self.worker_count = worker_count
-        self.logger = self.setup_logging()
+        self.logger = logger
 
-    def setup_logging(self):
-        if not os.path.exists(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging"):
-            os.mkdir(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging")
-        _log_format: str = "[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s"
-        logging.basicConfig(filename=f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging/"
-                                     f"{os.path.basename(__file__).replace('.py', '')}_"
-                                     f"{os.path.basename(self.input_file_path)}.log",
-                            level=logging.DEBUG, format=_log_format)
-        # console_out = logging.StreamHandler()
-        logger_stream = logging.getLogger("stream")
-        if logger_stream.hasHandlers():
-            logger_stream.handlers.clear()
-        # logger_stream.addHandler(console_out)
-        logger_stream = CustomAdapter(logger_stream, {"thread": None})
-        logger_stream.setLevel(logging.INFO)
-        return logger_stream
+    # def setup_logging(self):
+    #     if not os.path.exists(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging"):
+    #         os.mkdir(f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging")
+    #     _log_format: str = "[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s"
+    #     logging.basicConfig(filename=f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging/"
+    #                                  f"{os.path.basename(__file__).replace('.py', '')}_"
+    #                                  f"{os.path.basename(self.input_file_path)}.log",
+    #                         level=logging.DEBUG, format=_log_format)
+    #     # console_out = logging.StreamHandler()
+    #     logger_stream = logging.getLogger("stream")
+    #     if logger_stream.hasHandlers():
+    #         logger_stream.handlers.clear()
+    #     # logger_stream.addHandler(console_out)
+    #     logger_stream = CustomAdapter(logger_stream, {"thread": None})
+    #     logger_stream.setLevel(logging.INFO)
+    #     return logger_stream
 
     def connect_to_db(self):
         """
@@ -138,9 +127,9 @@ class ReferenceInn:
                 company_name_unified = re.sub(" +", " ", company_name_unified)
                 company_name_rus = re.sub(" +", " ", company_name_rus)
                 company_name_unified = \
-                        company_name_unified.translate({ord(c): " " for c in r",'!@#$%^&*()[]{};<>?\|`~=_+"})
+                    company_name_unified.translate({ord(c): " " for c in r",'!@#$%^&*()[]{};<>?\|`~=_+"})
                 company_name_rus = \
-                        company_name_rus.translate({ord(c): "" for c in r",'!@#$%^&*()[]{};<>?\|`~=_+"})
+                    company_name_rus.translate({ord(c): "" for c in r",'!@#$%^&*()[]{};<>?\|`~=_+"})
                 dict_data['confidence_rate'] = fuzz.partial_ratio(company_name_unified.upper(),
                                                                   company_name_rus.upper())
             if "is_checked_inn" in dict_data:

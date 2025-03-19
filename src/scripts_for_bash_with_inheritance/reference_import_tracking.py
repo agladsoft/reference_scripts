@@ -2,20 +2,20 @@ import os
 import csv
 import sys
 import json
-import logging
 import datetime
-from __init__ import *
+from src.scripts_for_bash_with_inheritance.__init__ import *
 from dotenv import load_dotenv
 from clickhouse_connect import get_client
+from src.scripts_for_bash_with_inheritance.app_logger import logger as logging
 
 load_dotenv()
 
-log_dir_name: str = f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging"
-if not os.path.exists(log_dir_name):
-    os.mkdir(log_dir_name)
-
-logging.basicConfig(filename=f"{log_dir_name}/{os.path.basename(__file__)}.log", level=logging.DEBUG)
-log = logging.getLogger()
+# log_dir_name: str = f"{os.environ.get('XL_IDP_PATH_REFERENCE_SCRIPTS')}/logging"
+# if not os.path.exists(log_dir_name):
+#     os.mkdir(log_dir_name)
+#
+# logging.basicConfig(filename=f"{log_dir_name}/{os.path.basename(__file__)}.log", level=logging.DEBUG)
+# log = logging.getLogger()
 
 
 def merge_two_dicts(x, y):
@@ -69,15 +69,15 @@ class ReferenceImportTracking(object):
                 sys.exit(7)
         client.close()
         return data
+if __name__ == "__main__":
+
+    input_file_path = os.path.abspath(sys.argv[1])
+    basename = os.path.basename(input_file_path)
+    output_file_path = os.path.join(sys.argv[2], f'{basename}.json')
+    print(f"output_file_path is {output_file_path}")
 
 
-input_file_path = os.path.abspath(sys.argv[1])
-basename = os.path.basename(input_file_path)
-output_file_path = os.path.join(sys.argv[2], f'{basename}.json')
-print(f"output_file_path is {output_file_path}")
+    parsed_data = ReferenceImportTracking().process(input_file_path)
 
-
-parsed_data = ReferenceImportTracking().process(input_file_path)
-
-with open(output_file_path, 'w', encoding='utf-8') as f:
-    json.dump(parsed_data, f, ensure_ascii=False, indent=4)
+    with open(output_file_path, 'w', encoding='utf-8') as f:
+        json.dump(parsed_data, f, ensure_ascii=False, indent=4)

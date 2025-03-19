@@ -5,7 +5,7 @@ import json
 import math
 from itertools import tee
 from datetime import datetime
-from __init__ import LIST_MONTHS
+from src.scripts_for_bash_with_inheritance.__init__ import LIST_MONTHS
 from typing import Dict, Union, Tuple
 
 

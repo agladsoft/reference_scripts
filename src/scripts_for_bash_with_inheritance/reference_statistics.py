@@ -7,27 +7,26 @@ import re
 import sys
 import logging
 from collections import defaultdict
-
-if not os.path.exists("logging"):
-    os.mkdir("logging")
-
-logging.basicConfig(filename="logging/{}.log".format(os.path.basename(__file__)), level=logging.DEBUG)
-log = logging.getLogger()
+from src.scripts_for_bash_with_inheritance.app_logger import logger as logging
 
 month_list = ["ЯНВАРЬ", "ФЕВРАЛЬ", "МАРТ", "АПРЕЛЬ", "МАЙ", "ИЮНЬ", "ИЮЛЬ", "АВГУСТ", "СЕНТЯБРЬ", "ОКТЯБРЬ", "НОЯБРЬ",
               "ДЕКАБРЬ"]
+columns = None
 
-columns = defaultdict(list)  # each value in each column is appended to a list
 
-with open(os.path.abspath(sys.argv[1])) as f:
-    reader = csv.DictReader(f)  # read rows into a dictionary format
-    for row in reader:  # read a row as {column1: value1, column2: value2,...}
-        for (k, v) in row.items():  # go over each column name and value
-            columns[k].append(v)  # append the value into the appropriate list
+def read_file():
+    global columns
+    columns = defaultdict(list)  # each value in each column is appended to a list
+
+    with open(os.path.abspath(sys.argv[1])) as f:
+        reader = csv.DictReader(f)  # read rows into a dictionary format
+        for row in reader:  # read a row as {column1: value1, column2: value2,...}
+            for (k, v) in row.items():  # go over each column name and value
+                columns[k].append(v)  # append the value into the appropriate list
 
 
 def get_indices(x: list, value: int) -> list:
-    indices = list()
+    indices = []
     i = 0
     while True:
         try:
@@ -57,8 +56,10 @@ def parse_column(parsed_data, enum, column0, column1, enum_for_value):
         date = date_full[0].split("-")
         context['date_arrive'] = date[0].strip()
         context['date_leave'] = date[1].strip()
-    context['direction'] = ("import" if columns[column1][enum + 1] == 'выгрузка' else "export") if columns[column1][enum + 1] else context['direction']
-    context['is_empty'] = columns[column1][enum + 2] != 'груженые' if columns[column1][enum + 2] else context['is_empty']
+    context['direction'] = ("import" if columns[column1][enum + 1] == 'выгрузка' else "export") if columns[column1][
+        enum + 1] else context['direction']
+    context['is_empty'] = columns[column1][enum + 2] != 'груженые' if columns[column1][enum + 2] else context[
+        'is_empty']
     type = {'container_size': int("".join(re.findall("\d", columns[column1][enum + 3]))[:2])}
     count = {'count': int(float(columns[column1][enum + enum_for_value]))}
     line = {'line': columns[column0][enum + enum_for_value].rsplit('/', 1)[0].strip()}
@@ -69,11 +70,11 @@ def parse_column(parsed_data, enum, column0, column1, enum_for_value):
 
 
 parsed_data = []
-context = dict()
+context = {}
 
 
 def process(input_file_path):
-    logging.info(u'file is {} {}'.format(os.path.basename(input_file_path), datetime.datetime.now()))
+    logging.info(f'file is {os.path.basename(input_file_path)} {datetime.datetime.now()}')
     columns = defaultdict(list)  # each value in each column is appended to a list
     with open(input_file_path) as file:
         reader = csv.DictReader(file)  # read rows into a dictionary format
@@ -99,7 +100,7 @@ def process(input_file_path):
                     start = indices_line[counter]
                     end = indices_summ[counter]
                     list_index = [
-                        i + len(columns[zip_list[0]][enum:start+1])
+                        i + len(columns[zip_list[0]][enum:start + 1])
                         for i, item in enumerate(columns[column][start + 1:end])
                         if re.search(r'\d', item)
                     ]
@@ -112,13 +113,19 @@ def process(input_file_path):
     return parsed_data
 
 
-input_file_path = os.path.abspath(sys.argv[1])
-output_folder = sys.argv[2]
-basename = os.path.basename(input_file_path)
-output_file_path = os.path.join(output_folder, basename + '.json')
-print("output_file_path is {}".format(output_file_path))
+def main():
+    read_file()
+    input_file_path = os.path.abspath(sys.argv[1])
+    output_folder = sys.argv[2]
+    basename = os.path.basename(input_file_path)
+    output_file_path = os.path.join(output_folder, f'{basename}.json')
+    print(f"output_file_path is {output_file_path}")
 
-parsed_data = process(input_file_path)
+    parsed_data = process(input_file_path)
 
-with open(output_file_path, 'w', encoding='utf-8') as file:
-    json.dump(parsed_data, file, ensure_ascii=False, indent=4)
+    with open(output_file_path, 'w', encoding='utf-8') as file:
+        json.dump(parsed_data, file, ensure_ascii=False, indent=4)
+
+
+if __name__ == '__main__':
+    main()

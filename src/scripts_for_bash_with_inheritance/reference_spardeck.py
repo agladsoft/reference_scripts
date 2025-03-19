@@ -80,6 +80,6 @@ class ReferenceSparDeck(object):
         df = df.replace({np.nan: None, "NaT": None})
         self.write_to_json(df.to_dict('records'))
 
-
-reference_spardeck: ReferenceSparDeck = ReferenceSparDeck(sys.argv[1], sys.argv[2])
-reference_spardeck.main()
+if __name__ == '__main__':
+    reference_spardeck: ReferenceSparDeck = ReferenceSparDeck(sys.argv[1], sys.argv[2])
+    reference_spardeck.main()

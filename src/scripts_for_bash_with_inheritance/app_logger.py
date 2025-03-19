@@ -1,5 +1,6 @@
 import os
 import logging
+from datetime import datetime
 
 _log_format: str = "[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s"
 _dateftm: str = "%d/%B/%Y %H:%M:%S"
@@ -21,3 +22,5 @@ def get_logger(name: str) -> logging.getLogger:
     logger.addHandler(get_file_handler(name))
     logger.setLevel(logging.INFO)
     return logger
+
+logger: get_logger = get_logger(os.path.basename(__file__).replace(".py", "_") + str(datetime.now().date()))

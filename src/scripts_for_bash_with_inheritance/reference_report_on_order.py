@@ -1,17 +1,18 @@
 import csv
 import os
-import logging
+# import logging
+from src.scripts_for_bash_with_inheritance.app_logger import logger as logging
 import re
 import sys
 import json
 import datetime
 from pandas.io.parsers import read_csv
 
-if not os.path.exists("logging"):
-    os.mkdir("logging")
-
-logging.basicConfig(filename="logging/{}.log".format(os.path.basename(__file__)), level=logging.DEBUG)
-log = logging.getLogger()
+# if not os.path.exists("logging"):
+#     os.mkdir("logging")
+#
+# logging.basicConfig(filename="logging/{}.log".format(os.path.basename(__file__)), level=logging.DEBUG)
+# log = logging.getLogger()
 
 input_file_path = os.path.abspath(sys.argv[1])
 output_folder = sys.argv[2]
@@ -88,15 +89,15 @@ class ReportOnOrder(object):
         parsed_record['report_on_order_month'] = int(month_and_year[1])
 
     def process(self, file_name_save):
-        logging.info(u'file is {} {}'.format(os.path.basename(file_name_save), datetime.datetime.now()))
-        parsed_data = list()
+        logging.info(f'file is {os.path.basename(file_name_save)} {datetime.datetime.now()}')
+        parsed_data = []
         with open(file_name_save, newline='') as csvfile:
             lines = list(csv.reader(csvfile))
 
         for ir, line in enumerate(lines):
             if (re.findall('Дата отхода', line[0]) and re.findall('№ пор', line[1]) and re.findall('Дата пор', line[2])) or self.activate_var:
                 self.activate_var = True
-                parsed_record = dict()
+                parsed_record = {}
                 if self.activate_row_headers:
                     for ir, column_position in enumerate(line):
                         self.activate_row_headers = False
@@ -107,7 +108,7 @@ class ReportOnOrder(object):
                     parsed_data.append(parsed_record)
 
         basename = os.path.basename(input_file_path)
-        output_file_path = os.path.join(self.output_folder, basename + '.json')
+        output_file_path = os.path.join(self.output_folder, f'{basename}.json')
         with open(output_file_path, 'w', encoding='utf-8') as f:
             json.dump(parsed_data, f, ensure_ascii=False, indent=4)
         return parsed_data
@@ -119,6 +120,6 @@ class ReportOnOrder(object):
 
 if __name__ == '__main__':
     parsed_data = ReportOnOrder(input_file_path, output_folder)
-    print(parsed_data())
+    # print(parsed_data())
 
 

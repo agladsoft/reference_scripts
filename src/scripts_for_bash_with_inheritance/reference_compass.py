@@ -1,15 +1,15 @@
 import sys
 import json
 import warnings
-import app_logger
+from src.scripts_for_bash_with_inheritance.app_logger import logger
 import contextlib
 import pandas as pd
-from __init__ import *
+from src.scripts_for_bash_with_inheritance.__init__ import *
 from typing import Optional
 from requests import Response
 from datetime import datetime
 from dotenv import load_dotenv
-from validate_inn import is_valid
+from src.scripts_for_bash_with_inheritance.validate_inn import is_valid
 from clickhouse_connect import get_client
 from clickhouse_connect.driver import Client
 from openpyxl import Workbook, load_workbook
@@ -26,8 +26,6 @@ DATE_FORMATS: list = [
 ]
 
 list_join_columns: list = ["telephone_number", "email"]
-
-logger: app_logger = app_logger.get_logger(os.path.basename(__file__).replace(".py", "_") + str(datetime.now().date()))
 
 headers_eng: dict = {
     ("ИНН",): "inn",
@@ -72,17 +70,6 @@ headers_eng: dict = {
     ("Регион регистрации",): "registration_region",
     ("Филиалы",): "branch_name"
 }
-
-
-# def get_my_env_var(var_name: str) -> str:
-#     try:
-#         return os.environ[var_name]
-#     except KeyError as e:
-#         raise MissingEnvironmentVariable(f"{var_name} does not exist") from e
-#
-#
-# class MissingEnvironmentVariable(Exception):
-#     pass
 
 
 class ReferenceCompass(object):
