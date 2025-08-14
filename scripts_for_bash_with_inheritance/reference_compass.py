@@ -241,7 +241,7 @@ class ReferenceCompass(object):
         dict_data["dadata_geo_lat"] = company_address_data.get("geo_lat") \
             if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_geo_lat"]
         dict_data["dadata_geo_lon"] = company_address_data.get("geo_lon") \
-            if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_geo_lat"]
+            if company_data_branch == "MAIN" or not company_data_branch else dict_data["dadata_geo_lon"]
         dict_data["is_company_name_from_cache"] = is_company_name_from_cache
 
     @staticmethod
