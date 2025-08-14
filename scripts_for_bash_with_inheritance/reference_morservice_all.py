@@ -53,8 +53,8 @@ class ReferenceMorService(object):
         :return:
         """
         for date in data.split():
-            if date in LIST_MONTHS:
-                month: int = LIST_MONTHS.index(date) + 1
+            if date.lower() in LIST_MONTHS:
+                month: int = LIST_MONTHS.index(date.lower()) + 1
                 context["month"] = month
                 context["quarter"] = math.ceil(float(month) / 3)
             elif date.isdigit():
