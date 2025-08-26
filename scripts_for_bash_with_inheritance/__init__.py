@@ -29,7 +29,7 @@ def get_my_env_var(var_name: str) -> str:
 class MissingEnvironmentVariable(Exception):
     pass
 
-def send_email_notifiers(message: str, subject: str = "Уведомление от системы экспорта"):
+def send_email_notifiers(message: str, subject: str = "Уведомление от системы reference"):
     """
     Отправка email через Mail.ru
     """
